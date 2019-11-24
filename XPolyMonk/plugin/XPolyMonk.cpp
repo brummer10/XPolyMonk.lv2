@@ -139,6 +139,7 @@ public:
   uint8_t last_key[VOICES];
   float vowel;
   float panic;
+  float pitchbend;
 
   void init_poly(PolyVoice *p, uint32_t rate);
   void connect_poly(PolyVoice *p, uint32_t port,void* data);
@@ -178,7 +179,7 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
   memset(output,0,n_samples*sizeof(float));
   memset(output1,0,n_samples*sizeof(float));
   for(int i = 0; i<VOICES;i++) {
-    p->xmonk[i]->note = (int) p->last_key[i] ? (double) p->last_key[i] : p->xmonk[i]->note;
+    p->xmonk[i]->note = (int) p->last_key[i] ? (double) p->last_key[i] + p->pitchbend : p->xmonk[i]->note;
     p->xmonk[i]->gate = (int) p->last_key[i] ? 1.0 : 0.0;
     p->xmonk[i]->vowel = (double) p->vowel;
     p->xmonk[i]->panic = (double) p->panic;
@@ -487,6 +488,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     }
     p.vowel = (*vowel);
     p.panic = (*panic);
+    p.pitchbend = pitchbend;
     
     //xmonk->compute_static(static_cast<int>(n_samples), output, output1, xmonk);
     p.run_poly(&p, n_samples, output, output1);
