@@ -1,6 +1,6 @@
 # XPolyMonk.lv2
 
-Polyphonic version of Xmonk.lv2 [Xmonk.lv2](https://github.com/brummer10/)
+Polyphonic version of Xmonk.lv2 [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 
 A LV2 toy
 
