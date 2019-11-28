@@ -141,6 +141,7 @@ public:
   float vowel;
   float panic;
   float pitchbend;
+  float velocity;
 
   void init_poly(PolyVoice *p, uint32_t rate);
   void connect_poly(PolyVoice *p, uint32_t port,void* data);
@@ -169,6 +170,7 @@ void PolyVoice::init_poly(PolyVoice *p, uint32_t rate) {
     p->xmonk[i]->init_static(rate, p->xmonk[i]);
   }
   last_voice = 0;
+  velocity = 1.0;
 }
 
 void PolyVoice::connect_poly(PolyVoice *p, uint32_t port,void* data) {
@@ -185,6 +187,7 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
     p->xmonk[i]->gate = (int) p->voices[i] ? 1.0 : 0.0;
     p->xmonk[i]->vowel = (double) p->vowel;
     p->xmonk[i]->panic = (double) p->panic;
+    p->xmonk[i]->velocity = (double) p->velocity;
     p->xmonk[i]->compute_static(static_cast<int>(n_samples), output, output1, p->xmonk[i]);
   }
 }
@@ -228,10 +231,9 @@ private:
   inline void deactivate_f();
 
   void clear_voice_list();
-  void remove_voice();
-  void add_voices(uint8_t *key);
-  void remove_voices(uint8_t *key);
-  void get_voices();
+  void remove_first_voice();
+  void add_voice(uint8_t *key);
+  void remove_voice(uint8_t *key);
 
 public:
   // LV2 Descriptor
@@ -333,7 +335,6 @@ void XPolyMonk_::clean_up()
 
 void XPolyMonk_::deactivate_f()
 {
-  //xmonk->clear_state_f_static(xmonk);
   reverb->clear_state_f_static(reverb);
   delay->clear_state_f_static(delay);
 }
@@ -345,7 +346,7 @@ void XPolyMonk_::clear_voice_list() {
     }
 }
 
-void XPolyMonk_::remove_voice() {
+void XPolyMonk_::remove_first_voice() {
     int i = 0;
     for(;i<VOICES-1;i++) {
         p.voices[i] = p.voices[i+1];
@@ -353,7 +354,7 @@ void XPolyMonk_::remove_voice() {
     p.voices[i] = 0;
 }
 
-void XPolyMonk_::add_voices(uint8_t *key) {
+void XPolyMonk_::add_voice(uint8_t *key) {
     int i = p.last_voice;
     bool set_key = false;
     for(;i<VOICES;i++) {
@@ -376,27 +377,16 @@ void XPolyMonk_::add_voices(uint8_t *key) {
         }
     }
     if(!set_key) {
-        remove_voice();
-        add_voices(key);
+        remove_first_voice();
+        add_voice(key);
     }
 }
 
-void XPolyMonk_::remove_voices(uint8_t *key) {
+void XPolyMonk_::remove_voice(uint8_t *key) {
     int i = 0;
     for(;i<VOICES;i++) {
         if(p.voices[i] == (*key)) {
             p.voices[i] = 0;
-            break;
-        }
-    }
-}
-
-void XPolyMonk_::get_voices() {
-    int i = VOICES-1;
-    for(;i>-1;i--) {
-        if(p.voices[i] != 0) {
-            (*note) = (float)p.voices[i]+pitchbend;
-            (*ui_note) = (float)p.voices[i]+pitchbend;
             break;
         }
     }
@@ -424,16 +414,17 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
             switch (lv2_midi_message_type(msg)) {
             case LV2_MIDI_MSG_NOTE_ON:
                 note_on = msg[1];
+                p.velocity = (float)((msg[2]+1.0)/128.0); 
                 (*note) = max(0.0, min((float)note_on + pitchbend, 127.0));
                 (*ui_note) = max(0.0, min((float)note_on + pitchbend, 127.0));
                 (*gate) = 1.0;
                 (*ui_gate) = 1.0;
                 (*panic) = 1.0;
-                add_voices(&note_on);
+                add_voice(&note_on);
             break;
             case LV2_MIDI_MSG_NOTE_OFF:
                 note_off = msg[1];
-                remove_voices(&note_off);
+                remove_voice(&note_off);
             break;
             case LV2_MIDI_MSG_CONTROLLER:
                 switch (msg[1]) {

@@ -134,6 +134,7 @@ public:
 	double note;
 	double vowel;
 	double panic;
+	double velocity;
 	static void clear_state_f_static(Dsp*);
 	static void init_static(uint32_t samplingFreq, Dsp*);
 	static void compute_static(int count, FAUSTFLOAT *output0, FAUSTFLOAT *output1, Dsp*);
@@ -198,6 +199,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	vowel = 2.0;
 	panic = 1.0;
 	gate_switch = 0;
+	velocity = 1.0;
 	clear_state_f();
 }
 
@@ -275,7 +277,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 
 	int panic_gate = int(fCheckbox0 * fCheckbox3);
 	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+fRec11[2]))* fCheckbox3;
-	double fSlow1 = (fConst3 * (double(fHslider1)*0.02 *gatetmp));
+	double fSlow1 = (fConst3 * (double(fHslider1)*0.02 * velocity *gatetmp));
 	double fSlow2 = (0.0010000000000000009 * double(fHslider2));
 	for (int i = 0; (i < count); i = (i + 1)) {
 		fRec11[0] = panic_gate ? 1.0 : (fRec11[2] - (0.0002 - fCheckbox2*0.0002));
