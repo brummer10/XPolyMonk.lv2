@@ -137,6 +137,7 @@ private:
 
 public:
   uint8_t voices[VOICES];
+  int last_voice;
   float vowel;
   float panic;
   float pitchbend;
@@ -167,6 +168,7 @@ void PolyVoice::init_poly(PolyVoice *p, uint32_t rate) {
   for(int i = 0; i<VOICES;i++) {
     p->xmonk[i]->init_static(rate, p->xmonk[i]);
   }
+  last_voice = 0;
 }
 
 void PolyVoice::connect_poly(PolyVoice *p, uint32_t port,void* data) {
@@ -352,13 +354,25 @@ void XPolyMonk_::remove_voice() {
 }
 
 void XPolyMonk_::add_voices(uint8_t *key) {
-    int i = 0;
+    int i = p.last_voice;
     bool set_key = false;
     for(;i<VOICES;i++) {
         if(p.voices[i] == 0) {
             p.voices[i] = (*key);
             set_key = true;
+            p.last_voice = i+1;
             break;
+        }
+    }
+    if(!set_key) {
+        i = 0;
+        for(;i<VOICES;i++) {
+            if(p.voices[i] == 0) {
+                p.voices[i] = (*key);
+                set_key = true;
+                p.last_voice = i;
+                break;
+            }
         }
     }
     if(!set_key) {
