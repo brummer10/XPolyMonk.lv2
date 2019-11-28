@@ -471,17 +471,17 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
                 ui->midi_gate = value;
             }
         }
-    }  else if (port_index == MIDISUSTAIN) {
+    } else if (port_index == MIDISUSTAIN) {
         if (ui->ignore_midi_sustain) {
             ui->ignore_midi_sustain = false;
             return;
         }
-        if (ui->midi_sustain != ui->sustain) {
+        if (ui->midi_sustain != value) {
             if(value>-0.1 && value<4.1) {
                 check_value_changed(ui->sustain_slider->adj, &value);
                 // prevent event loop between host and plugin
                 ui->block_event = SUSTAIN;
-                ui->midi_vowel = value;
+                ui->midi_sustain = value;
             }
         }
     } else if (port_index == SCALE) {
