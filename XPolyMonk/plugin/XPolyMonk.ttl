@@ -179,6 +179,16 @@ rdfs:comment """
         lv2:default 0.0 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
+    ]      , [
+        a lv2:OutputPort ,
+            lv2:ControlPort ;
+        lv2:portProperty lv2:notOnGUI;
+        lv2:index 13 ;
+        lv2:symbol "MIDISUSTAIN" ;
+        lv2:name "MIDISUSTAIN" ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
     ] .
 
 <https://github.com/brummer10/XPolyMonk_gui>

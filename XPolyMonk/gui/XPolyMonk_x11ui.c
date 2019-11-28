@@ -47,9 +47,11 @@ typedef struct {
     float midi_note;
     float midi_vowel;
     float midi_gate;
+    float midi_sustain;
     bool ignore_midi_note;
     bool ignore_midi_vowel;
     bool ignore_midi_gate;
+    bool ignore_midi_sustain;
 
     void *controller;
     LV2UI_Write_Function write_function;
@@ -310,6 +312,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->ignore_midi_note = true;
     ui->ignore_midi_vowel = true;
     ui->ignore_midi_gate = true;
+    ui->ignore_midi_sustain = true;
     // init Xputty
     main_init(&ui->main);
     // create the toplevel Window on the parentXwindow provided by the host
@@ -466,6 +469,19 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             if(value>-0.1 && value<1.1) {
                 adj_changed(ui->win, GATE, value);
                 ui->midi_gate = value;
+            }
+        }
+    }  else if (port_index == MIDISUSTAIN) {
+        if (ui->ignore_midi_sustain) {
+            ui->ignore_midi_sustain = false;
+            return;
+        }
+        if (ui->midi_sustain != ui->sustain) {
+            if(value>-0.1 && value<4.1) {
+                check_value_changed(ui->sustain_slider->adj, &value);
+                // prevent event loop between host and plugin
+                ui->block_event = SUSTAIN;
+                ui->midi_vowel = value;
             }
         }
     } else if (port_index == SCALE) {

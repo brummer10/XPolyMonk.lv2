@@ -142,6 +142,7 @@ public:
   float panic;
   float pitchbend;
   float velocity;
+  float sustain;
 
   void init_poly(PolyVoice *p, uint32_t rate);
   void connect_poly(PolyVoice *p, uint32_t port,void* data);
@@ -171,6 +172,7 @@ void PolyVoice::init_poly(PolyVoice *p, uint32_t rate) {
   }
   last_voice = 0;
   velocity = 1.0;
+  sustain = 0.5;
 }
 
 void PolyVoice::connect_poly(PolyVoice *p, uint32_t port,void* data) {
@@ -188,6 +190,7 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
     p->xmonk[i]->vowel = (double) p->vowel;
     p->xmonk[i]->panic = (double) p->panic;
     p->xmonk[i]->velocity = (double) p->velocity;
+    p->xmonk[i]->sustain = (double) p->sustain;
     p->xmonk[i]->compute_static(static_cast<int>(n_samples), output, output1, p->xmonk[i]);
   }
 }
@@ -209,8 +212,9 @@ private:
   float* ui_gate;
   float* ui_vowel;
   float _ui_vowel;
+  float* ui_sustain;
+  float _ui_sustain;
   float* sustain;
-  float _sustain;
 
   DenormalProtection MXCSR;
   // pointer to buffer
@@ -305,6 +309,9 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
     case MIDIGATE:
       gate = (float*)data;
       break;
+    case MIDISUSTAIN:
+      sustain = (float*)data;
+      break;
     case NOTE:
       ui_note = (float*)data;
       break;
@@ -318,7 +325,7 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
       panic = (float*)data;
       break;
     case SUSTAIN:
-      sustain = (float*)data;
+      ui_sustain = (float*)data;
       break;
     default:
       break;
@@ -397,10 +404,11 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     if(n_samples<1) return;
     MXCSR.set_();
 
-    if((*sustain) != _sustain) {
-        if(!(int)floor((*sustain)) && (int)floor((_sustain)))
+    if((*ui_sustain) != _ui_sustain) {
+        if(!(int)floor((*ui_sustain)) && (int)floor((_ui_sustain)))
             clear_voice_list();
-       _sustain = (*sustain); 
+       _ui_sustain = (*ui_sustain);
+       (*sustain) = (*ui_sustain);
     }
 
     if((*ui_vowel) != (_ui_vowel)) {
@@ -444,6 +452,9 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                         (*vowel) = 2.0;
                         (*ui_vowel) = 2.0;
                     break;
+                    case LV2_MIDI_CTL_SUSTAIN:
+                        (*sustain) = (float) (msg[2]/127.0);
+                        (*ui_sustain) = (*sustain);
                     default:
                     break;
                 }
@@ -460,6 +471,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     }
     p.vowel = (*vowel);
     p.panic = (*panic);
+    p.sustain = (*sustain);
     p.pitchbend = pitchbend;
     
     p.run_poly(&p, n_samples, output, output1);

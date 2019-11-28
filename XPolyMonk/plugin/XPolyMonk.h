@@ -47,6 +47,7 @@ typedef enum
    MIDINOTE,
    MIDIVOWEL,
    MIDIGATE,
+   MIDISUSTAIN,
 } PortIndex;
 
 #endif //SRC_HEADERS_GXEFFECTS_H_
