@@ -131,6 +131,12 @@ static void reset_panic(X11_UI* ui) {
     }
 }
 
+static void _motion(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    if (!w) return;
+    adj_changed(w,VOWEL,adj_get_value(w->adj_x));
+}
+
 static void clear_key_list(X11_UI* ui) {
     int i = 0;
     for(;i<12;i++) {
@@ -311,10 +317,10 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
      // store a pointer to the X11_UI struct in the parent_struct Widget_t field
     ui->win->parent_struct = ui;
     widget_get_png(ui->win, LDVAR(mandala_png));
-    ui->win->adj_x = add_adjustment(ui->win,2.0, 2.0, 0.0, 4.0, 0.02, CL_NONE);
+    ui->win->adj_x = add_adjustment(ui->win,2.0, 2.0, 0.0, 4.0, 0.02, CL_CONTINUOS);
     ui->win->adj_y = add_adjustment(ui->win,40.0, 40.0, 28.0, 52.0, 0.1, CL_NONE);
     //ui->win->func.adj_callback = _motion;
-    //ui->win->func.value_changed_callback = _motion;
+    ui->win->func.value_changed_callback = _motion;
     //ui->win->func.button_press_callback = window_button_press;
     //ui->win->func.button_release_callback = window_button_release;
     ui->win->func.key_release_callback = win_key_release;

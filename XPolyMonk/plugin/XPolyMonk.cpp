@@ -136,7 +136,7 @@ private:
   Dsp*      xmonk[VOICES];
 
 public:
-  uint8_t last_key[VOICES];
+  uint8_t voices[VOICES];
   float vowel;
   float panic;
   float pitchbend;
@@ -179,8 +179,8 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
   memset(output,0,n_samples*sizeof(float));
   memset(output1,0,n_samples*sizeof(float));
   for(int i = 0; i<VOICES;i++) {
-    p->xmonk[i]->note = (int) p->last_key[i] ? (double) p->last_key[i] + p->pitchbend : p->xmonk[i]->note;
-    p->xmonk[i]->gate = (int) p->last_key[i] ? 1.0 : 0.0;
+    p->xmonk[i]->note = (int) p->voices[i] ? (double) p->voices[i] + p->pitchbend : p->xmonk[i]->note;
+    p->xmonk[i]->gate = (int) p->voices[i] ? 1.0 : 0.0;
     p->xmonk[i]->vowel = (double) p->vowel;
     p->xmonk[i]->panic = (double) p->panic;
     p->xmonk[i]->compute_static(static_cast<int>(n_samples), output, output1, p->xmonk[i]);
@@ -203,18 +203,15 @@ private:
   float* ui_note;
   float* ui_gate;
   float* ui_vowel;
+  float _ui_vowel;
   float* sustain;
   float _sustain;
-  int gatecounter;
-  bool have_midi;
-  uint8_t last_key[12];
 
   DenormalProtection MXCSR;
   // pointer to buffer
   float*          output;
   float*          output1;
   // pointer to dsp class
-  //Dsp*      xmonk;
   PolyVoice p;
   stereoverb::Dsp*      reverb;
   stereodelay::Dsp*      delay;
@@ -228,11 +225,11 @@ private:
   inline void clean_up();
   inline void deactivate_f();
 
-  void clear_key_list();
-  void remove_first_key();
-  void add_last_key(uint8_t *key);
-  void remove_last_key(uint8_t *key);
-  void get_last_key();
+  void clear_voice_list();
+  void remove_voice();
+  void add_voices(uint8_t *key);
+  void remove_voices(uint8_t *key);
+  void get_voices();
 
 public:
   // LV2 Descriptor
@@ -258,7 +255,6 @@ XPolyMonk_::XPolyMonk_() :
   vowel(NULL),
   output(NULL),
   output1(NULL),
-  //xmonk(xmonk::plugin()),
   p(),
   reverb(stereoverb::plugin()),
   delay(stereodelay::plugin()) {};
@@ -267,7 +263,6 @@ XPolyMonk_::XPolyMonk_() :
 XPolyMonk_::~XPolyMonk_()
 {
   // delete DSP class
- // xmonk->del_instance(xmonk);
   reverb->del_instance(reverb);
   delay->del_instance(delay);
 };
@@ -276,14 +271,11 @@ XPolyMonk_::~XPolyMonk_()
 
 void XPolyMonk_::init_dsp_(uint32_t rate)
 {
-  //xmonk->init_static(rate, xmonk); // init the DSP class
   p.init_poly(&p, rate);
   reverb->init_static(rate, reverb); // init the DSP class
   delay->init_static(rate, delay); // init the DSP class
-  gatecounter = 0;
   pitchbend = 0.0;
-  clear_key_list();
-  have_midi = false;
+  clear_voice_list();
 }
 
 // connect the Ports used by the plug-in class
@@ -344,58 +336,53 @@ void XPolyMonk_::deactivate_f()
   delay->clear_state_f_static(delay);
 }
 
-void XPolyMonk_::clear_key_list() {
+void XPolyMonk_::clear_voice_list() {
     int i = 0;
     for(;i<VOICES;i++) {
-        last_key[i] = 0;
+        p.voices[i] = 0;
     }
 }
 
-void XPolyMonk_::remove_first_key() {
+void XPolyMonk_::remove_voice() {
     int i = 0;
     for(;i<VOICES-1;i++) {
-        last_key[i] = last_key[i+1];
+        p.voices[i] = p.voices[i+1];
     }
-    last_key[i] = 0;
+    p.voices[i] = 0;
 }
 
-void XPolyMonk_::add_last_key(uint8_t *key) {
+void XPolyMonk_::add_voices(uint8_t *key) {
     int i = 0;
     bool set_key = false;
     for(;i<VOICES;i++) {
-        if(last_key[i] == 0) {
-            last_key[i] = (*key);
+        if(p.voices[i] == 0) {
+            p.voices[i] = (*key);
             set_key = true;
             break;
         }
     }
     if(!set_key) {
-        remove_first_key();
-        add_last_key(key);
+        remove_voice();
+        add_voices(key);
     }
 }
 
-void XPolyMonk_::remove_last_key(uint8_t *key) {
+void XPolyMonk_::remove_voices(uint8_t *key) {
     int i = 0;
     for(;i<VOICES;i++) {
-        if(last_key[i] == (*key)) {
-            last_key[i] = 0;
+        if(p.voices[i] == (*key)) {
+            p.voices[i] = 0;
             break;
         }
     }
-    for(;i<VOICES-1;i++) {
-        last_key[i] = last_key[i+1];
-    }
-    last_key[i] = 0;
 }
 
-void XPolyMonk_::get_last_key() {
+void XPolyMonk_::get_voices() {
     int i = VOICES-1;
     for(;i>-1;i--) {
-        if(last_key[i] != 0) {
-            (*note) = (float)last_key[i]+pitchbend;
-            (*ui_note) = (float)last_key[i]+pitchbend;
-           // xmonk->note = (double) (*note);
+        if(p.voices[i] != 0) {
+            (*note) = (float)p.voices[i]+pitchbend;
+            (*ui_note) = (float)p.voices[i]+pitchbend;
             break;
         }
     }
@@ -408,10 +395,15 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
 
     if((*sustain) != _sustain) {
         if(!(int)floor((*sustain)) && (int)floor((_sustain)))
-            clear_key_list();
+            clear_voice_list();
        _sustain = (*sustain); 
     }
-    
+
+    if((*ui_vowel) != (_ui_vowel)) {
+        _ui_vowel = (*ui_vowel);
+        (*vowel) = (*ui_vowel);
+    }
+
     LV2_ATOM_SEQUENCE_FOREACH(control, ev) {
         if (ev->body.type == midi_MidiEvent) {
             const uint8_t* const msg = (const uint8_t*)(ev + 1);
@@ -423,25 +415,11 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                 (*gate) = 1.0;
                 (*ui_gate) = 1.0;
                 (*panic) = 1.0;
-               // xmonk->note = (double) (*note);
-               // xmonk->gate = 1.0;
-               // xmonk->panic = 1.0;
-                gatecounter++;
-                add_last_key(&note_on);
-                have_midi = true;
+                add_voices(&note_on);
             break;
             case LV2_MIDI_MSG_NOTE_OFF:
                 note_off = msg[1];
-              //  (*note) = (float)note_off;
-                if(!(int)floor((*sustain))) remove_last_key(&note_off);
-                gatecounter--;
-                if (!gatecounter) {
-                    (*gate) = 0.0;
-                    (*ui_gate) = 0.0;
-                   // xmonk->gate = 0.0;
-                } else {
-                    get_last_key();
-                }
+                remove_voices(&note_off);
             break;
             case LV2_MIDI_MSG_CONTROLLER:
                 switch (msg[1]) {
@@ -449,23 +427,17 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                     case LV2_MIDI_CTL_LSB_MODWHEEL:
                         (*vowel) = (float) (msg[2]/31.0);
                         (*ui_vowel) = (float) (msg[2]/31.0);
-                       // xmonk->vowel = (double)(*vowel);
-                        have_midi = true;
                     break;
                     case LV2_MIDI_CTL_ALL_SOUNDS_OFF:
                     case LV2_MIDI_CTL_ALL_NOTES_OFF:
-                        gatecounter = 0;
                         (*gate) = 0.0;
                         (*ui_gate) = 0.0;
                         (*panic) = 0.0;
-                       // xmonk->gate = 0.0;
-                       // xmonk->panic = 0.0;
                     break;
                     case LV2_MIDI_CTL_RESET_CONTROLLERS:
                         pitchbend = 0.0;
                         (*vowel) = 2.0;
                         (*ui_vowel) = 2.0;
-                       // xmonk->vowel = 2.0;
                     break;
                     default:
                     break;
@@ -475,22 +447,16 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                 pitchbend = ((msg[2] << 7 | msg[1]) - 8192) * PITCHBEND_INC;
                 (*note) = max(0.0, min((float)note_on + pitchbend, 127.0));
                 (*ui_note) = max(0.0, min((float)note_on + pitchbend, 127.0));
-                //xmonk->note = (double) (*note);
             break;
             default:
-                have_midi = false;
             break;
             }
         }
-    }
-    for (int i = 0; i<VOICES;i++) {
-        p.last_key[i] = last_key[i];
     }
     p.vowel = (*vowel);
     p.panic = (*panic);
     p.pitchbend = pitchbend;
     
-    //xmonk->compute_static(static_cast<int>(n_samples), output, output1, xmonk);
     p.run_poly(&p, n_samples, output, output1);
     reverb->compute_static(static_cast<int>(n_samples), output, output1, output, output1, reverb);
     delay->compute_static(static_cast<int>(n_samples), output, output1, output, output1, delay);
@@ -502,7 +468,6 @@ void XPolyMonk_::connect_all__ports(uint32_t port, void* data)
   // connect the Ports used by the plug-in class
   connect_(port,data); 
   // connect the Ports used by the DSP class
-  //xmonk->connect_static(port,  data, xmonk);
   p.connect_poly(&p, port, data);
   reverb->connect_static(port,  data, reverb);
   delay->connect_static(port,  data, delay);
