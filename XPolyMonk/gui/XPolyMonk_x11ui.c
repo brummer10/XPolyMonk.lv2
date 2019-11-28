@@ -477,7 +477,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             return;
         }
         if (ui->midi_sustain != value) {
-            if(value>-0.1 && value<4.1) {
+            if(value>-0.1 && value<1.1) {
                 check_value_changed(ui->sustain_slider->adj, &value);
                 // prevent event loop between host and plugin
                 ui->block_event = SUSTAIN;
