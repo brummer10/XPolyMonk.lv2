@@ -424,7 +424,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                 note_on = msg[1];
                 p.velocity = (float)((msg[2]+1.0)/128.0); 
                 (*note) = max(0.0, min((float)note_on + pitchbend, 127.0));
-                (*ui_note) = max(0.0, min((float)note_on + pitchbend, 127.0));
+                (*ui_note) = (*note);
                 (*gate) = 1.0;
                 (*ui_gate) = 1.0;
                 (*panic) = 1.0;
@@ -439,7 +439,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                     case LV2_MIDI_CTL_MSB_MODWHEEL:
                     case LV2_MIDI_CTL_LSB_MODWHEEL:
                         (*vowel) = (float) (msg[2]/31.0);
-                        (*ui_vowel) = (float) (msg[2]/31.0);
+                        (*ui_vowel) = (*vowel);
                     break;
                     case LV2_MIDI_CTL_ALL_SOUNDS_OFF:
                     case LV2_MIDI_CTL_ALL_NOTES_OFF:
@@ -462,7 +462,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
             case LV2_MIDI_MSG_BENDER:
                 pitchbend = ((msg[2] << 7 | msg[1]) - 8192) * PITCHBEND_INC;
                 (*note) = max(0.0, min((float)note_on + pitchbend, 127.0));
-                (*ui_note) = max(0.0, min((float)note_on + pitchbend, 127.0));
+                (*ui_note) = (*note);
             break;
             default:
             break;

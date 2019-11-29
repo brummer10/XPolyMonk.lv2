@@ -1,22 +1,30 @@
 # XPolyMonk.lv2
 
-Polyphonic version of Xmonk.lv2 [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
-
-A LV2 toy
+Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 
 ![xmonk](https://github.com/brummer10/XPolyMonk.lv2/raw/master/xmonk.png)
 
 
 ## Features
 
-- a simple polyphonic sound generator to have some fun with.
+- a polyphonic (6 voices) sound generator to have some fun with.
 
-- WORK IN PROGRESS!!
+
+## Midi support
+
+- NOTE_ON/NOTE_OFF -> play note
+- MODWHEEL CC 0x01 -> vowel parameter
+- PITCHBEND CC 0xE0 -> pitchbend parameter
+- SUSTAIN CC 0x40 -> sustain parameter
+- RESET CC 0x79 -> reset all parameter
+- ALL_SOUNDS_OFF/ALL_NOTES_OFF CC 0x78 0x7B -> panic
+
 
 ## Dependencys
 
 - libcairo2-dev
 - libx11-dev
+
 
 ## Build
 - git submodule init
