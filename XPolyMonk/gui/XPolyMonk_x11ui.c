@@ -89,9 +89,6 @@ static void draw_window(void *w_, void* user_data) {
     
     double pos_x1 = 4.0 + (double)((width-8) * state_x);
     double pos_y1 = height-( 4.0 + (double)((height-8) * state_y));
-    
-    double pos_x2 = width/2. + ((width/3.9) * (state_x-0.5));
-    double pos_y2 = height/2 - ((width/3.9) * (state_y-0.5));
 
     cairo_pattern_t *pat;
 
@@ -103,27 +100,11 @@ static void draw_window(void *w_, void* user_data) {
     cairo_fill (w->crb);
     cairo_pattern_destroy (pat);
 
-    pat = cairo_pattern_create_radial (pos_x2, pos_y2, 25.6,
-                                       width/2.8, height/2.8, width/2);
-    cairo_pattern_add_color_stop_rgba (pat, 0, 1, 1, 1, 1);
-    cairo_pattern_add_color_stop_rgba (pat, 1, 0, 0, 0, 1);
-    cairo_set_source (w->crb, pat);
-    cairo_arc (w->crb, width/2, height/2, width/4, 0, 2 * M_PI);
-    cairo_fill (w->crb);
-    cairo_pattern_destroy (pat);
-
     widget_set_scale(w);
     cairo_set_source_surface (w->crb, w->image, 0, 0);
     cairo_paint(w->crb);
     widget_reset_scale(w);
 
-    use_fg_color_scheme(w, get_color_state(w));
-    cairo_move_to(w->crb, pos_x1, pos_y1);
-    cairo_line_to(w->crb, pos_x1, pos_y1);
-    cairo_set_line_width(w->crb, 8.0);
-    cairo_set_line_cap (w->crb,CAIRO_LINE_CAP_ROUND);
-    cairo_stroke(w->crb);
-    
 }
 
 static void reset_panic(X11_UI* ui) {
