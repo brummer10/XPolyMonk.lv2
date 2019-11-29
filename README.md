@@ -12,7 +12,7 @@ Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 
 ## Midi support
 
-- NOTE_ON/NOTE_OFF -> play note
+- NOTE_ON/NOTE_OFF (VELOCITY) -> play note
 - MODWHEEL CC 0x01 -> vowel parameter
 - PITCHBEND CC 0xE0 -> pitchbend parameter
 - SUSTAIN CC 0x40 -> sustain parameter
