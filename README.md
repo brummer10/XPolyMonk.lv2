@@ -7,7 +7,7 @@ Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 
 ## Features
 
-- a polyphonic (6 voices) sound generator to have some fun with.
+- a polyphonic (6 voices) sound generator.
 
 
 ## Midi support
