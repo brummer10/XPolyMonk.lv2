@@ -143,6 +143,7 @@ public:
   float pitchbend;
   float velocity;
   float sustain;
+  float gain;
 
   void init_poly(PolyVoice *p, uint32_t rate);
   void connect_poly(PolyVoice *p, uint32_t port,void* data);
@@ -191,6 +192,7 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
     p->xmonk[i]->panic = (double) p->panic;
     p->xmonk[i]->velocity = (double) p->velocity;
     p->xmonk[i]->sustain = (double) p->sustain;
+    p->xmonk[i]->gain = (double) p->gain;
     p->xmonk[i]->compute_static(static_cast<int>(n_samples), output, output1, p->xmonk[i]);
   }
 }
@@ -206,6 +208,7 @@ private:
   float* note;
   float* gate;
   float* panic;
+  float* gain;
   float pitchbend;
   float* vowel;
   float* ui_note;
@@ -215,6 +218,8 @@ private:
   float* ui_sustain;
   float _ui_sustain;
   float* sustain;
+  float* ui_gain;
+  float _ui_gain;
 
   DenormalProtection MXCSR;
   // pointer to buffer
@@ -312,6 +317,9 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
     case MIDISUSTAIN:
       sustain = (float*)data;
       break;
+    case MIDIGAIN:
+      gain = (float*)data;
+      break;
     case NOTE:
       ui_note = (float*)data;
       break;
@@ -326,6 +334,9 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
       break;
     case SUSTAIN:
       ui_sustain = (float*)data;
+      break;
+    case GAIN:
+      ui_gain = (float*)data;
       break;
     default:
       break;
@@ -416,6 +427,11 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
         (*vowel) = (*ui_vowel);
     }
 
+    if((*ui_gain) != (_ui_gain)) {
+        _ui_gain = (*ui_gain);
+        (*gain) = (*ui_gain);
+    }
+
     LV2_ATOM_SEQUENCE_FOREACH(control, ev) {
         if (ev->body.type == midi_MidiEvent) {
             const uint8_t* const msg = (const uint8_t*)(ev + 1);
@@ -456,6 +472,9 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                         (*sustain) = (float) (msg[2]/127.0);
                         (*ui_sustain) = (*sustain);
                     default:
+                    case LV2_MIDI_CTL_MSB_MAIN_VOLUME:
+                        (*gain) = (float) (msg[2]/127.0);
+                        (*ui_gain) = (*gain);
                     break;
                 }
             break;
@@ -472,6 +491,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     p.vowel = (*vowel);
     p.panic = (*panic);
     p.sustain = (*sustain);
+    p.gain = (*gain);
     p.pitchbend = pitchbend;
     
     p.run_poly(&p, n_samples, output, output1);

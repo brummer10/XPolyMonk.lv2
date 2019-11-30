@@ -136,6 +136,7 @@ public:
 	double panic;
 	double velocity;
 	double sustain;
+	double gain;
 	static void clear_state_f_static(Dsp*);
 	static void init_static(uint32_t samplingFreq, Dsp*);
 	static void compute_static(int count, FAUSTFLOAT *output0, FAUSTFLOAT *output1, Dsp*);
@@ -202,6 +203,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	gate_switch = 0;
 	velocity = 1.0;
 	sustain = 0.5;
+	gain = 0.5;
 	clear_state_f();
 }
 
@@ -225,6 +227,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 
 	//if(gate_switch) {
 		fHslider0 = note;
+		fHslider1 = gain;
 		fCheckbox0 = gate;
 		fHslider2 = vowel;
 		fCheckbox3 = panic;

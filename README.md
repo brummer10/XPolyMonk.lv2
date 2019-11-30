@@ -17,6 +17,7 @@ Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 - PITCHBEND CC 0xE0 -> pitchbend parameter
 - SUSTAIN CC 0x40 -> sustain parameter
 - RESET CC 0x79 -> reset all parameter
+- VOLUME CC 0x27 -> gain parameter
 - ALL_SOUNDS_OFF/ALL_NOTES_OFF CC 0x78 0x7B -> panic
 
 
