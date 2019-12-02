@@ -266,6 +266,7 @@ XPolyMonk_::XPolyMonk_() :
   gate(NULL),
   panic(NULL),
   vowel(NULL),
+  sustain(NULL),
   output(NULL),
   output1(NULL),
   p(),
@@ -462,11 +463,13 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                         (*gate) = 0.0;
                         (*ui_gate) = 0.0;
                         (*panic) = 0.0;
+                        clear_voice_list();
                     break;
                     case LV2_MIDI_CTL_RESET_CONTROLLERS:
                         pitchbend = 0.0;
                         (*vowel) = 2.0;
                         (*ui_vowel) = 2.0;
+                        clear_voice_list();
                     break;
                     case LV2_MIDI_CTL_SUSTAIN:
                         (*sustain) = (float) (msg[2]/127.0);
