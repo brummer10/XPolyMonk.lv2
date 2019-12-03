@@ -41,7 +41,7 @@
 	CXXFLAGS += -D_FORTIFY_SOURCE=2 -I. -I./dsp -I./plugin -fPIC -DPIC -O2 -Wall -fstack-protector -funroll-loops \
 	-ffast-math -fomit-frame-pointer -fstrength-reduce -fdata-sections \
 	-Wl,--gc-sections -Wl,-z,relro,-z,now -Wl,--exclude-libs,ALL $(SSE_CFLAGS)
-	LDFLAGS += -I. -shared -lm -Wl,-z,noexecstack -fvisibility=hidden
+	LDFLAGS += -I. -shared -lm -Wl,-z,noexecstack -fvisibility=hidden -static-libstdc++ -static-libgcc 
 	GUI_LDFLAGS += -I./gui -I$(HEADER_DIR) -Wl,-z,noexecstack -fvisibility=hidden \
 	-L. $(LIB_DIR)libxputty.a -shared `pkg-config --cflags --libs cairo x11` -lm 
 	# invoke build files
