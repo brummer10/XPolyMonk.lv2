@@ -208,6 +208,7 @@ private:
   float* note;
   float* gate;
   float* panic;
+  float _panic;
   float* gain;
   float pitchbend;
   float* vowel;
@@ -431,6 +432,11 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     if((*ui_gain) != (_ui_gain)) {
         _ui_gain = (*ui_gain);
         (*gain) = (*ui_gain);
+    }
+
+    if((*panic) != (_panic)) {
+        _panic = (*panic);
+        if(!_panic) clear_voice_list();
     }
 
     LV2_ATOM_SEQUENCE_FOREACH(control, ev) {
