@@ -30,6 +30,7 @@
 @prefix urid:  <http://lv2plug.in/ns/ext/urid#> .
 @prefix midi:  <http://lv2plug.in/ns/ext/midi#> .
 @prefix pprop: <http://lv2plug.in/ns/ext/port-props#> .
+@prefix patch: <http://lv2plug.in/ns/ext/patch#> .
 
 
 <https://github.com/brummer10/XPolyMonk.lv2#me>
@@ -110,7 +111,8 @@ rdfs:comment """
         a lv2:InputPort ,
             atom:AtomPort ;
         atom:bufferType atom:Sequence ;
-        atom:supports midi:MidiEvent ;
+        atom:supports midi:MidiEvent ,
+                        patch:Message;
         lv2:designation lv2:control ;
         lv2:index 6 ;
         lv2:symbol "MIDI_IN" ;
@@ -159,7 +161,7 @@ rdfs:comment """
         lv2:index 10 ;
         lv2:symbol "MIDINOTE" ;
         lv2:name "MIDINOTE" ;
-        lv2:default 40.0 ;
+        lv2:default 0.0 ;
         lv2:minimum 0.0 ;
         lv2:maximum 127.0 ;
     ]      , [
@@ -212,5 +214,6 @@ rdfs:comment """
         lv2:extensionData guiext:resize ;
         lv2:extensionData guiext:idleInterface;
         lv2:requiredFeature guiext:makeResident;
-        lv2:requiredFeature guiext:idleInterface; 
+        lv2:requiredFeature guiext:idleInterface;
+        lv2:optionalFeature <http://lv2plug.in/ns/ext/instance-access>;
   .

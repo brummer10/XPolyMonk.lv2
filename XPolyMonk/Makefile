@@ -40,7 +40,7 @@
 	# set compile flags
 	CXXFLAGS += -D_FORTIFY_SOURCE=2 -I. -I./dsp -I./plugin -fPIC -DPIC -O2 -Wall -fstack-protector -funroll-loops \
 	-ffast-math -fomit-frame-pointer -fstrength-reduce -fdata-sections \
-	-Wl,--gc-sections -Wl,-z,relro,-z,now -Wl,--exclude-libs,ALL $(SSE_CFLAGS)
+	-Wl,--gc-sections -Wl,-z,relro,-z,now -Wl,--exclude-libs,ALL -Wl,-z,defs $(SSE_CFLAGS)
 	LDFLAGS += -I. -shared -lm -Wl,-z,noexecstack -fvisibility=hidden -static-libstdc++ -static-libgcc 
 	GUI_LDFLAGS += -I./gui -I$(HEADER_DIR) -Wl,-z,noexecstack -fvisibility=hidden \
 	-L. $(LIB_DIR)libxputty.a -shared `pkg-config --cflags --libs cairo x11` -lm 
@@ -97,7 +97,7 @@ uninstall :
 
 $(NAME) :
 	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LDFLAGS) -o $(NAME).so
-	$(CC) $(CXXFLAGS) -Wl,-z,nodelete $(GUI_OBJECTS) $(GUI_LDFLAGS) -o $(NAME)_ui.so
+	$(CXX) $(CXXFLAGS) -Wl,-z,nodelete $(GUI_OBJECTS) $(GUI_LDFLAGS) -o $(NAME)_ui.so
 	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(NAME).so
 	$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(NAME)_ui.so
 

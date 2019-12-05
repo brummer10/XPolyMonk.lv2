@@ -1,6 +1,7 @@
 
 #include "lv2/lv2plug.in/ns/lv2core/lv2.h"
 #include "lv2/lv2plug.in/ns/extensions/ui/ui.h"
+#include "lv2/lv2plug.in/ns/ext/instance-access/instance-access.h"
 
 // xwidgets.h includes xputty.h and all defined widgets from Xputty
 #include "xwidgets.h"
@@ -27,6 +28,7 @@
 
 // main window struct
 typedef struct {
+    xmonk::XPolyMonk_ *xpm;
     void *parentXwindow;
     Xputty main;
     Widget_t *win;
@@ -37,7 +39,6 @@ typedef struct {
     Widget_t *keyboard;
     MidiKeyboard *keys;
     int block_event;
-    int last_key[12];
     float sustain;
     float panic;
     float pitchbend;
@@ -120,85 +121,21 @@ static void _motion(void *w_, void* user_data) {
     adj_changed(w,VOWEL,adj_get_value(w->adj_x));
 }
 
-static void clear_key_list(X11_UI* ui) {
-    int i = 0;
-    for(;i<12;i++) {
-        ui->last_key[i] = 0;
-    }
-}
-
-static void remove_first_key(X11_UI* ui) {
-    int i = 0;
-    for(;i<11;i++) {
-        ui->last_key[i] = ui->last_key[i+1];
-    }
-    ui->last_key[i] = 0;
-}
-
-static void add_last_key(X11_UI* ui,int *key) {
-    int i = 0;
-    bool set_key = false;
-    for(;i<12;i++) {
-        if(ui->last_key[i] == 0) {
-            ui->last_key[i] = (*key);
-            set_key = true;
-            break;
-        }
-    }
-    if(!set_key) {
-        remove_first_key(ui);
-        add_last_key(ui, key);
-    }
-    
-}
-
-static void remove_last_key(X11_UI* ui,int *key) {
-    int i = 0;
-    for(;i<12;i++) {
-        if(ui->last_key[i] == (*key)) {
-            ui->last_key[i] = 0;
-            break;
-        }
-    }
-    for(;i<11;i++) {
-        ui->last_key[i] = ui->last_key[i+1];
-    }
-    ui->last_key[i] = 0;
-}
-
-static void get_last_key(X11_UI* ui) {
-    int i = 11;
-    for(;i>-1;i--) {
-        if(ui->last_key[i] != 0) {
-            float value = (float)ui->last_key[i]+ui->pitchbend;
-            check_value_changed(ui->win->adj_y, &value);
-            break;
-        }
-    }
-}
-
 static void get_note(Widget_t *w, int *key, bool on_off) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     if (on_off) {
-        add_last_key(ui,key);
         reset_panic(ui);
-        float value = (float)(*key)+ui->pitchbend;
-        check_value_changed(ui->win->adj_y, &value);
-        adj_changed(w, GATE, 1.0);    
+        ui->xpm->add_voice((uint8_t*)key);
+          
     } else {
-        if(!(int)floor(ui->sustain))remove_last_key(ui,key);
-        if(!have_key_in_matrix(ui->keys->key_matrix)) {
-            adj_changed(w, GATE, 0.0);
-        } else {
-            get_last_key(ui);
-        }
+        ui->xpm->remove_voice((uint8_t*)key);
     }
 }
 
 static void get_pitch(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
-    ui->pitchbend = (float)((*value) -64.0) * ui->sensity * PITCHBEND_INC;
-    get_last_key(ui);
+    ui->xpm->pitchbend = (float)((*value) -64.0) * ui->sensity * PITCHBEND_INC;
+    
 }
 
 static void get_sensity(Widget_t *w,int *value) {
@@ -216,7 +153,6 @@ static void get_all_sound_off(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     adj_changed(w, GATE, 0.0);
     ui->panic = 0.0;
-    clear_key_list(ui);
     ui->write_function(ui->controller,PANIC,sizeof(float),0,&ui->panic);
 }
 
@@ -230,19 +166,30 @@ static void win_key_release(void *w_, void *key_, void *user_data) {
     }
 }
 
+static void key_button_callback(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    X11_UI* ui = (X11_UI*)p->parent_struct;
+    
+    if (w->flags & HAS_POINTER && adj_get_value(w->adj)){
+        widget_show_all(ui->keyboard);
+    }
+    if (w->flags & HAS_POINTER && !adj_get_value(w->adj)){
+        widget_hide(ui->keyboard);
+    }
+}
+
 static void keyboard_hidden(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = w->parent;
+    Widget_t *p = (Widget_t*)w->parent;
     X11_UI* ui = (X11_UI*)p->parent_struct;
     adj_set_value(ui->key_button->adj,0.0);
 }
 
 static void sustain_slider_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = w->parent;
+    Widget_t *p = (Widget_t*)w->parent;
     X11_UI* ui = (X11_UI*)p->parent_struct;
-    if((int)floor(ui->sustain) && !(int)floor(adj_get_value(w->adj)))
-        clear_key_list(ui);
     ui->sustain = adj_get_value(w->adj);
     value_changed(w_, user_data);
 }
@@ -262,8 +209,10 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     }
 
     ui->parentXwindow = 0;
+    ui->xpm = NULL;
     LV2UI_Resize* resize = NULL;
     ui->block_event = -1;
+    bool instance_access = false;
 
     int i = 0;
     for (; features[i]; ++i) {
@@ -271,6 +220,8 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
             ui->parentXwindow = features[i]->data;
         } else if (!strcmp(features[i]->URI, LV2_UI__resize)) {
             resize = (LV2UI_Resize*)features[i]->data;
+        } else if (!strcmp(features[i]->URI, LV2_INSTANCE_ACCESS_URI) ) {
+            ui->xpm = (xmonk::XPolyMonk_ *)(features[i]->data);
         }
     }
 
@@ -279,10 +230,13 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
         free(ui);
         return NULL;
     }
-    i = 0;
-    for(;i<12;i++) {
-        ui->last_key[i] = 0;
+
+    if (ui->xpm) {
+        instance_access = true;
+    } else {
+        fprintf(stderr, "ERROR: Failed to get instance access %s\n", plugin_uri);
     }
+
     ui->pitchbend = 0.0;
     ui->sensity = 64.0;
     ui->sustain = 0.0;
@@ -326,9 +280,12 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     // connect the value changed callback with the write_function
     ui->widget->func.value_changed_callback = value_changed;
 
-   // ui->key_button = add_image_toggle_button(ui->win, "Keyboard", 15, 260, 30, 30);
-   // widget_get_png(ui->key_button, LDVAR(midikeyboard_png));
-   // ui->key_button->func.value_changed_callback = key_button_callback;
+    // only enable internal keyboard when we've instance access
+    if (instance_access) {
+        ui->key_button = add_image_toggle_button(ui->win, "Keyboard", 15, 260, 30, 30);
+        widget_get_png(ui->key_button, LDVAR(midikeyboard_png));
+        ui->key_button->func.value_changed_callback = key_button_callback;
+    }
 
     ui->sustain_slider = add_vslider(ui->win, "Sustain", 250, 10, 44, 240);
     ui->sustain_slider->flags |= FAST_REDRAW;
@@ -532,7 +489,7 @@ static const LV2UI_Descriptor descriptor = {
     extension_data
 };
 
-
+extern "C"
 LV2_SYMBOL_EXPORT
 const LV2UI_Descriptor* lv2ui_descriptor(uint32_t index) {
     switch (index) {
