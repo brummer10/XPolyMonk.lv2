@@ -134,6 +134,7 @@ void XPolyMonk_::init_dsp_(uint32_t rate)
   reverb->init_static(rate, reverb); // init the DSP class
   delay->init_static(rate, delay); // init the DSP class
   pitchbend = 0.0;
+  velocity = 1.0;
   clear_voice_list();
 }
 
@@ -236,7 +237,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
             switch (lv2_midi_message_type(msg)) {
             case LV2_MIDI_MSG_NOTE_ON:
                 note_on = msg[1];
-                p.velocity = (float)((msg[2]+1.0)/128.0); 
+                velocity = (float)((msg[2]+1.0)/128.0); 
                 (*note) = max(0.0, min((float)note_on + pitchbend, 127.0));
                 (*ui_note) = (*note);
                 (*gate) = 1.0;
@@ -293,6 +294,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     p.sustain = (*sustain);
     p.gain = (*gain);
     p.pitchbend = pitchbend;
+    p.velocity = velocity;
     
     p.run_poly(&p, n_samples, output, output1);
     reverb->compute_static(static_cast<int>(n_samples), output, output1, output, output1, reverb);

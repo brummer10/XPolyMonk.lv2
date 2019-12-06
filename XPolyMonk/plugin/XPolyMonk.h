@@ -200,6 +200,7 @@ public:
   void add_voice(uint8_t *key);
   void remove_voice(uint8_t *key);
   float pitchbend;
+  float velocity;
 
   // LV2 Descriptor
   static const LV2_Descriptor descriptor;

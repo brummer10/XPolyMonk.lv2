@@ -149,6 +149,23 @@ static void get_mod(Widget_t *w,int *value) {
     check_value_changed(ui->win->adj_x, &v);
 }
 
+static void get_volume(Widget_t *w,int *value) {
+    X11_UI* ui = (X11_UI*)w->parent_struct;
+    float v = (float)(*value)/127.0;
+    check_value_changed(ui->widget->adj, &v);
+}
+
+static void get_velocity(Widget_t *w,int *value) {
+    X11_UI* ui = (X11_UI*)w->parent_struct;
+    ui->xpm->velocity = (float)(((*value)+1.0)/128.0); 
+}
+
+static void get_sustain(Widget_t *w,int *value) {
+    X11_UI* ui = (X11_UI*)w->parent_struct;
+    float v = (float)(*value)/127.0;
+    check_value_changed(ui->sustain_slider->adj, &v);
+}
+
 static void get_all_sound_off(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     adj_changed(w, GATE, 0.0);
@@ -321,6 +338,9 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->keys->mk_send_pitch = get_pitch;
     ui->keys->mk_send_pitchsensity = get_sensity;
     ui->keys->mk_send_mod = get_mod;
+    ui->keys->mk_send_volume = get_volume;
+    ui->keys->mk_send_velocity = get_velocity;
+    ui->keys->mk_send_sustain = get_sustain;
     ui->keys->mk_send_all_sound_off = get_all_sound_off;
     
     // finally map all Widgets on screen
