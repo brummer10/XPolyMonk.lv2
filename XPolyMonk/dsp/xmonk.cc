@@ -133,6 +133,7 @@ public:
 	double panic;
 	double velocity;
 	double sustain;
+	double detune;
 	double gain;
 	static void clear_state_f_static(Dsp*);
 	static void init_static(uint32_t samplingFreq, Dsp*);
@@ -200,6 +201,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	sustain = 0.5;
 	max_note = 84.0;
 	gain = 0.5;
+	detune = 0.0;
 	clear_state_f();
 }
 
@@ -270,11 +272,10 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		break;
 	}
 
-	double tempnote = std::min<double>(max_note, fHslider0);
-	double fSlow0 = int(fCheckbox1) ? double(ref_freq * pow(2.0, (double(int(tempnote- ref_note))/TET))) :
-		double(ref_freq * pow(2.0, (tempnote- ref_note)/TET));
-
-	double regain = tempnote>60.0? std::max<double>(0.2,std::min<double>(1.0, 1.0- ((tempnote-60.0)*0.02))) : 1.0;
+	double tempnote = std::min<double>(max_note, fHslider0+= detune);
+	double fSlow0 = double(ref_freq * pow(2.0, (tempnote- ref_note)/TET));
+	double notesplit = max_note* 0.714285714;
+	double regain = tempnote>notesplit? std::max<double>(0.2,std::min<double>(1.0, 1.0- ((tempnote-notesplit)*0.02))) : 1.0;
 
 	int panic_gate = int(fCheckbox0 * fCheckbox3);
 	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+fRec11[2]))* fCheckbox3;

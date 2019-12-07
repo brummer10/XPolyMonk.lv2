@@ -49,6 +49,7 @@ typedef enum
    MIDIGATE,
    MIDISUSTAIN,
    MIDIGAIN,
+   DETUNE,
 } PortIndex;
 
 ////////////////////////////// forward declaration ///////////////////////////
@@ -147,6 +148,7 @@ private:
 public:
   uint8_t voices[VOICES];
   int last_voice;
+  float detune;
   float vowel;
   float panic;
   float pitchbend;
@@ -178,6 +180,8 @@ private:
   float _panic;
   float* gain;
   float* vowel;
+  float* detune;
+  float detune_;
   float* ui_note;
   float* ui_gate;
   float* ui_vowel;

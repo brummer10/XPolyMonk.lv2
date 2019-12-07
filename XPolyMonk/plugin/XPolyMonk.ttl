@@ -205,6 +205,16 @@ rdfs:comment """
         lv2:default 0.0 ;
         lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
+    ]      , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:portProperty lv2:toggled;
+        lv2:index 15 ;
+        lv2:symbol "DETUNE" ;
+        lv2:name "DETUNE" ;
+        lv2:default 0.0 ;
+        lv2:minimum -1.0 ;
+        lv2:maximum 1.0 ;
     ] .
 
 <https://github.com/brummer10/XPolyMonk_gui>

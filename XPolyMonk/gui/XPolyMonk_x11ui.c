@@ -37,6 +37,7 @@ typedef struct {
     Widget_t *key_button;
     Widget_t *sustain_slider;
     Widget_t *keyboard;
+    Widget_t *detune_slider;
     MidiKeyboard *keys;
     int block_event;
     float sustain;
@@ -48,6 +49,7 @@ typedef struct {
     float midi_gate;
     float midi_sustain;
     float midi_gain;
+    float detune;
     bool ignore_midi_note;
     bool ignore_midi_vowel;
     bool ignore_midi_gate;
@@ -211,6 +213,14 @@ static void sustain_slider_callback(void *w_, void* user_data) {
     value_changed(w_, user_data);
 }
 
+static void detune_slider_callback(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    X11_UI* ui = (X11_UI*)p->parent_struct;
+    ui->sustain = adj_get_value(w->adj);
+    value_changed(w_, user_data);
+}
+
 // init the xwindow and return the LV2UI handle
 static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
             const char * plugin_uri, const char * bundle_path,
@@ -262,6 +272,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->midi_vowel = 2.0;
     ui->midi_gate = 0.0;
     ui->midi_gain = 0.5;
+    ui->detune = 0.0;
     ui->ignore_midi_note = true;
     ui->ignore_midi_vowel = true;
     ui->ignore_midi_gate = true;
@@ -311,6 +322,14 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->sustain_slider->parent_struct = ui;
     ui->sustain_slider->data = SUSTAIN;
     ui->sustain_slider->func.value_changed_callback = sustain_slider_callback;
+
+    ui->detune_slider = add_hslider(ui->win, "Detune", 50, 250, 150, 44);
+    ui->detune_slider->flags |= FAST_REDRAW;
+    ui->detune_slider->scale.gravity = CENTER;
+    set_adjustment(ui->detune_slider->adj,0.0, 0.0, -1.0, 1.0, 0.01, CL_CONTINUOS);
+    ui->detune_slider->parent_struct = ui;
+    ui->detune_slider->data = DETUNE;
+    ui->detune_slider->func.value_changed_callback = detune_slider_callback;
 
     // create a combobox widget
     ui->button = add_combobox(ui->win, "", 195, 260, 90, 30);
@@ -463,6 +482,10 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
         ui->block_event = (int)port_index;
     } else if (port_index == SUSTAIN) {
         check_value_changed(ui->sustain_slider->adj, &value);
+        // prevent event loop between host and plugin
+        ui->block_event = (int)port_index;
+    } else if (port_index == DETUNE) {
+        check_value_changed(ui->detune_slider->adj, &value);
         // prevent event loop between host and plugin
         ui->block_event = (int)port_index;
     } else if (port_index == PANIC) {

@@ -84,6 +84,7 @@ void PolyVoice::init_poly(PolyVoice *p, uint32_t rate) {
   last_voice = 0;
   velocity = 1.0;
   sustain = 0.5;
+  detune = 0.0;
 }
 
 void PolyVoice::connect_poly(PolyVoice *p, uint32_t port,void* data) {
@@ -103,6 +104,7 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
     p->xmonk[i]->velocity = (double) p->velocity;
     p->xmonk[i]->sustain = (double) p->sustain;
     p->xmonk[i]->gain = (double) p->gain;
+    p->xmonk[i]->detune = (double) p->detune * i * 0.1;
     p->xmonk[i]->compute_static(static_cast<int>(n_samples), output, output1, p->xmonk[i]);
   }
 }
@@ -121,6 +123,7 @@ XPolyMonk_::XPolyMonk_() :
   gate(NULL),
   panic(NULL),
   vowel(NULL),
+  detune(NULL),
   sustain(NULL),
   output(NULL),
   output1(NULL),
@@ -149,6 +152,7 @@ void XPolyMonk_::init_dsp_(uint32_t rate)
   delay->init_static(rate, delay); // init the DSP class
   pitchbend = 0.0;
   velocity = 1.0;
+  detune_ = 0.0;
   clear_voice_list();
 }
 
@@ -198,6 +202,9 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
       break;
     case GAIN:
       ui_gain = (float*)data;
+      break;
+    case DETUNE:
+      detune = (float*)data;
       break;
     default:
       break;
@@ -310,6 +317,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     p->gain = (*gain);
     p->pitchbend = pitchbend;
     p->velocity = velocity;
+    p->detune = (*detune);
     
     p->run_poly(p, n_samples, output, output1);
     compress->compute_static(static_cast<int>(n_samples), output, output1, output, output1, compress);
