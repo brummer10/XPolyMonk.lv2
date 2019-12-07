@@ -31,10 +31,6 @@
 #define PLUGIN_URI "https://github.com/brummer10/XPolyMonk.lv2"
 #define PLUGIN_UI_URI "https://github.com/brummer10/XPolyMonk_gui"
 
-#define FAUSTFLOAT float
-#include "stereodelay.h"
-#include "stereoverb.h"
-#include "xmonk.h"
 
 typedef enum
 {
@@ -55,7 +51,19 @@ typedef enum
    MIDIGAIN,
 } PortIndex;
 
-namespace xmonk {
+////////////////////////////// forward declaration ///////////////////////////
+
+namespace compressor {
+class Dsp;
+} // end namespace stereoverb
+
+namespace stereoverb {
+class Dsp;
+} // end namespace stereoverb
+
+namespace stereodelay {
+class Dsp;
+} // end namespace stereodelay
 
 ///////////////////////// DENORMAL PROTECTION WITH SSE /////////////////
 
@@ -81,6 +89,8 @@ namespace xmonk {
 #endif //__SSE3__
 
 #endif //__SSE__
+
+namespace xmonk {
 
 #define VOICES 6
 
@@ -127,6 +137,8 @@ public:
 
 ////////////////////////////// PLUG-IN CLASS ///////////////////////////
 
+class Dsp;
+
 class PolyVoice
 {
 private:
@@ -145,6 +157,7 @@ public:
   void init_poly(PolyVoice *p, uint32_t rate);
   void connect_poly(PolyVoice *p, uint32_t port,void* data);
   void run_poly(PolyVoice *p, uint32_t n_samples, float* output, float* output1);
+  void delete_poly(PolyVoice* p);
 
   PolyVoice();
   ~PolyVoice();
@@ -180,7 +193,8 @@ private:
   float*          output;
   float*          output1;
   // pointer to dsp class
-  PolyVoice p;
+  PolyVoice* p;
+  compressor::Dsp*      compress;
   stereoverb::Dsp*      reverb;
   stereodelay::Dsp*      delay;
 
@@ -222,36 +236,36 @@ public:
 void XPolyMonk_::clear_voice_list() {
     int i = 0;
     for(;i<VOICES;i++) {
-        p.voices[i] = 0;
+        p->voices[i] = 0;
     }
 }
 
 void XPolyMonk_::remove_first_voice() {
     int i = 0;
     for(;i<VOICES-1;i++) {
-        p.voices[i] = p.voices[i+1];
+        p->voices[i] = p->voices[i+1];
     }
-    p.voices[i] = 0;
+    p->voices[i] = 0;
 }
 
 void XPolyMonk_::add_voice(uint8_t *key) {
-    int i = p.last_voice;
+    int i = p->last_voice;
     bool set_key = false;
     for(;i<VOICES;i++) {
-        if(p.voices[i] == 0) {
-            p.voices[i] = (*key);
+        if(p->voices[i] == 0) {
+            p->voices[i] = (*key);
             set_key = true;
-            p.last_voice = i+1;
+            p->last_voice = i+1;
             break;
         }
     }
     if(!set_key) {
         i = 0;
         for(;i<VOICES;i++) {
-            if(p.voices[i] == 0) {
-                p.voices[i] = (*key);
+            if(p->voices[i] == 0) {
+                p->voices[i] = (*key);
                 set_key = true;
-                p.last_voice = i;
+                p->last_voice = i;
                 break;
             }
         }
@@ -265,8 +279,8 @@ void XPolyMonk_::add_voice(uint8_t *key) {
 void XPolyMonk_::remove_voice(uint8_t *key) {
     int i = 0;
     for(;i<VOICES;i++) {
-        if(p.voices[i] == (*key)) {
-            p.voices[i] = 0;
+        if(p->voices[i] == (*key)) {
+            p->voices[i] = 0;
             break;
         }
     }
