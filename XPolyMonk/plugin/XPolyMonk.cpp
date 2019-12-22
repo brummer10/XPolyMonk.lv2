@@ -320,9 +320,9 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     p->detune = (*detune);
     
     p->run_poly(p, n_samples, output, output1);
-    compress->compute_static(static_cast<int>(n_samples), output, output1, output, output1, compress);
     reverb->compute_static(static_cast<int>(n_samples), output, output1, output, output1, reverb);
     delay->compute_static(static_cast<int>(n_samples), output, output1, output, output1, delay);
+    compress->compute_static(static_cast<int>(n_samples), output, output1, output, output1, compress);
     MXCSR.reset_();
 }
 
