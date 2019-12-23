@@ -120,6 +120,7 @@ private:
 	double ref_freq;
 	double ref_note;
 	double max_note;
+	int check_gate;
 	mydspSIG0* sig0;
 	double ftbl0mydspSIG0[65536];
 
@@ -202,6 +203,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	velocity = 1.0;
 	sustain = 0.5;
 	max_note = 84.0;
+	check_gate = 0.0;
 	gain = 0.5;
 	detune = 0.0;
 	clear_state_f();
@@ -280,6 +282,10 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 	double regain = tempnote>notesplit? std::max<double>(0.2,std::min<double>(1.0, 1.0- ((tempnote-notesplit)*0.02))) : 1.0;
 
 	int panic_gate = int(fCheckbox0 * fCheckbox3);
+	if(check_gate != panic_gate) {
+		check_gate = panic_gate;
+		if(panic_gate ) for (int l11 = 0; (l11 < 3); l11 = (l11 + 1)) fRec12[l11] = 0.0;
+	}
 	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+fRec11[2]))* fCheckbox3;
 	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fRec12[0] *gatetmp));
 	double fSlow2 = (0.0010000000000000009 * double(fHslider2));

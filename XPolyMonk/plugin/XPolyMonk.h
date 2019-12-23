@@ -93,7 +93,7 @@ class Dsp;
 
 namespace xmonk {
 
-#define VOICES 6
+#define VOICES 12
 
 class DenormalProtection
 {
