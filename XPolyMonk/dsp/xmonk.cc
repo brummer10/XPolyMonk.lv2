@@ -115,6 +115,7 @@ private:
 	double fRec9[3];
 	double fRec10[3];
 	double fRec11[3];
+	double fRec12[3];
 	double TET;
 	double ref_freq;
 	double ref_note;
@@ -167,6 +168,7 @@ inline void Dsp::clear_state_f()
 	for (int l8 = 0; (l8 < 3); l8 = (l8 + 1)) fRec9[l8] = 0.0;
 	for (int l9 = 0; (l9 < 3); l9 = (l9 + 1)) fRec10[l9] = 0.0;
 	for (int l10 = 0; (l10 < 3); l10 = (l10 + 1)) fRec11[l10] = 0.0;
+	for (int l11 = 0; (l11 < 3); l11 = (l11 + 1)) fRec12[l11] = 0.0;
 }
 
 void Dsp::clear_state_f_static(Dsp *p)
@@ -279,10 +281,11 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 
 	int panic_gate = int(fCheckbox0 * fCheckbox3);
 	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+fRec11[2]))* fCheckbox3;
-	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * velocity *gatetmp));
+	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fRec12[0] *gatetmp));
 	double fSlow2 = (0.0010000000000000009 * double(fHslider2));
 	for (int i = 0; (i < count); i = (i + 1)) {
 		fRec11[0] = panic_gate ? 1.0 : (fRec11[2] - (0.0002 - fCheckbox2*0.0002));
+		fRec12[0] = (gatetmp>0.0001) ? std::min<double>(1.0,(fRec12[2] + (velocity*0.0002))) : 0.0;
 		fRec1[0] = (fConst1 + (fRec1[1] - std::floor((fConst1 + fRec1[1]))));
 		double fTemp0 = (fSlow0 * ((0.013000000000000001 * ftbl0mydspSIG0[int((65536.0 * fRec1[0]))]) + 1.0));
 		double fTemp1 = ((0.003666666666666667 * (400.0 - fTemp0)) + 3.0);
@@ -425,6 +428,8 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		fRec10[1] = fRec10[0];
 		fRec11[2] = fRec11[1];
 		fRec11[1] = fRec11[0];
+		fRec12[2] = fRec12[1];
+		fRec12[1] = fRec12[0];
 	}
 #undef fCheckbox1
 }

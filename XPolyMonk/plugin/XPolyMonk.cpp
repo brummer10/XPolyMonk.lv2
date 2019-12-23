@@ -316,7 +316,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     p->sustain = (*sustain);
     p->gain = (*gain);
     p->pitchbend = pitchbend;
-    p->velocity = velocity;
+    p->velocity = std::max<double>(0.1,velocity);
     p->detune = (*detune);
     
     p->run_poly(p, n_samples, output, output1);
