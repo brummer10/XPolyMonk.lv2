@@ -96,6 +96,7 @@ private:
 	double fRec1[2];
 	double fConst2;
 	double fConst3;
+	double fConst6;
 	FAUSTFLOAT fHslider1;
 	FAUSTFLOAT fCheckbox0;
 	FAUSTFLOAT *fCheckbox1_;
@@ -189,6 +190,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	fConst3 = (1.0 - fConst2);
 	fConst4 = (1.0 / fConst0);
 	fConst5 = (3.1415926535897931 / fConst0);
+	fConst6 = (10.0 / fConst0);
 	fHslider0 = FAUSTFLOAT(80.0);
 	fHslider1 = FAUSTFLOAT(0.90000000000000002);
 	fCheckbox0 = FAUSTFLOAT(0.0);
@@ -290,8 +292,8 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fRec12[0] *gatetmp));
 	double fSlow2 = (0.0010000000000000009 * double(fHslider2));
 	for (int i = 0; (i < count); i = (i + 1)) {
-		fRec11[0] = panic_gate ? 1.0 : (fRec11[2] - (0.0002 - fCheckbox2*0.0002));
-		fRec12[0] = (gatetmp>0.0001) ? std::min<double>(1.0,(fRec12[2] + (velocity*0.0002))) : 0.0;
+		fRec11[0] = panic_gate ? 1.0 : (fRec11[2] - (fConst6 - fCheckbox2*fConst6));
+		fRec12[0] = (gatetmp>0.0001) ? std::min<double>(1.0,(fRec12[2] + (velocity*fConst6))) : 0.0;
 		fRec1[0] = (fConst1 + (fRec1[1] - std::floor((fConst1 + fRec1[1]))));
 		double fTemp0 = (fSlow0 * ((0.013000000000000001 * ftbl0mydspSIG0[int((65536.0 * fRec1[0]))]) + 1.0));
 		double fTemp1 = ((0.003666666666666667 * (400.0 - fTemp0)) + 3.0);
