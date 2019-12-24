@@ -50,6 +50,10 @@ typedef enum
    MIDISUSTAIN,
    MIDIGAIN,
    DETUNE,
+   MIDIATTACK,
+   MIDIRELEASE,
+   ATTACK,
+   RELEASE,
 } PortIndex;
 
 ////////////////////////////// forward declaration ///////////////////////////
@@ -153,7 +157,9 @@ public:
   float panic;
   float pitchbend;
   float velocity;
+  float attack;
   float sustain;
+  float release;
   float gain;
 
   void init_poly(PolyVoice *p, uint32_t rate);
@@ -178,6 +184,14 @@ private:
   float* gate;
   float* panic;
   float _panic;
+  float* attack;
+  float _attack;
+  float* release;
+  float _release;
+  float* ui_attack;
+  float _ui_attack;
+  float* ui_release;
+  float _ui_release;
   float* gain;
   float* vowel;
   float* detune;

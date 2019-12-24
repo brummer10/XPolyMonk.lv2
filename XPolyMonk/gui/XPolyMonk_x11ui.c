@@ -16,7 +16,7 @@
 -----------------------------------------------------------------------
 ----------------------------------------------------------------------*/
 
-#define CONTROLS 5
+#define CONTROLS 7
 
 #define PITCHBEND_INC 0.00146484375  // 24 / (2^14), +/- 1 octave
 
@@ -38,22 +38,30 @@ typedef struct {
     Widget_t *sustain_slider;
     Widget_t *keyboard;
     Widget_t *detune_slider;
+    Widget_t *attack_slider;
+    Widget_t *release_slider;
     MidiKeyboard *keys;
     int block_event;
     float sustain;
     float panic;
     float pitchbend;
     float sensity;
+    float attack;
+    float release;
     float midi_note;
     float midi_vowel;
     float midi_gate;
+    float midi_attack;
     float midi_sustain;
+    float midi_release;
     float midi_gain;
     float detune;
     bool ignore_midi_note;
     bool ignore_midi_vowel;
     bool ignore_midi_gate;
+    bool ignore_midi_attack;
     bool ignore_midi_sustain;
+    bool ignore_midi_release;
     bool ignore_midi_gain;
 
     void *controller;
@@ -162,10 +170,22 @@ static void get_velocity(Widget_t *w,int *value) {
     ui->xpm->velocity = (float)(((*value)+1.0)/128.0); 
 }
 
+static void get_attack(Widget_t *w,int *value) {
+    X11_UI* ui = (X11_UI*)w->parent_struct;
+    float v = (float)(*value)/127.0;
+    check_value_changed(ui->attack_slider->adj, &v);
+}
+
 static void get_sustain(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     float v = (float)(*value)/127.0;
     check_value_changed(ui->sustain_slider->adj, &v);
+}
+
+static void get_release(Widget_t *w,int *value) {
+    X11_UI* ui = (X11_UI*)w->parent_struct;
+    float v = (float)(*value)/127.0;
+    check_value_changed(ui->release_slider->adj, &v);
 }
 
 static void get_all_sound_off(Widget_t *w,int *value) {
@@ -205,11 +225,27 @@ static void keyboard_hidden(void *w_, void* user_data) {
     adj_set_value(ui->key_button->adj,0.0);
 }
 
+static void attack_slider_callback(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    X11_UI* ui = (X11_UI*)p->parent_struct;
+    ui->attack = adj_get_value(w->adj);
+    value_changed(w_, user_data);
+}
+
 static void sustain_slider_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
     X11_UI* ui = (X11_UI*)p->parent_struct;
     ui->sustain = adj_get_value(w->adj);
+    value_changed(w_, user_data);
+}
+
+static void release_slider_callback(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    X11_UI* ui = (X11_UI*)p->parent_struct;
+    ui->release = adj_get_value(w->adj);
     value_changed(w_, user_data);
 }
 
@@ -266,6 +302,8 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
 
     ui->pitchbend = 0.0;
     ui->sensity = 64.0;
+    ui->attack = 0.5;
+    ui->release = 0.5;
     ui->sustain = 0.0;
     ui->panic = 1.0;
     ui->midi_note = 40.0;
@@ -276,7 +314,9 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->ignore_midi_note = true;
     ui->ignore_midi_vowel = true;
     ui->ignore_midi_gate = true;
+    ui->ignore_midi_attack = true;
     ui->ignore_midi_sustain = true;
+    ui->ignore_midi_release = true;
     ui->ignore_midi_gain = true;
     // init Xputty
     main_init(&ui->main);
@@ -315,13 +355,29 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
         ui->key_button->func.value_changed_callback = key_button_callback;
     }
 
-    ui->sustain_slider = add_vslider(ui->win, "Sustain", 250, 10, 44, 240);
+    ui->attack_slider = add_vslider(ui->win, "Attack", 162, 10, 44, 240);
+    ui->attack_slider->flags |= FAST_REDRAW;
+    ui->attack_slider->scale.gravity = CENTER;
+    set_adjustment(ui->attack_slider->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
+    ui->attack_slider->parent_struct = ui;
+    ui->attack_slider->data = ATTACK;
+    ui->attack_slider->func.value_changed_callback = attack_slider_callback;
+
+    ui->sustain_slider = add_vslider(ui->win, "Sustain", 206, 10, 44, 240);
     ui->sustain_slider->flags |= FAST_REDRAW;
     ui->sustain_slider->scale.gravity = CENTER;
     set_adjustment(ui->sustain_slider->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
     ui->sustain_slider->parent_struct = ui;
     ui->sustain_slider->data = SUSTAIN;
     ui->sustain_slider->func.value_changed_callback = sustain_slider_callback;
+
+    ui->release_slider = add_vslider(ui->win, "Release", 250, 10, 44, 240);
+    ui->release_slider->flags |= FAST_REDRAW;
+    ui->release_slider->scale.gravity = CENTER;
+    set_adjustment(ui->release_slider->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
+    ui->release_slider->parent_struct = ui;
+    ui->release_slider->data = RELEASE;
+    ui->release_slider->func.value_changed_callback = release_slider_callback;
 
     ui->detune_slider = add_hslider(ui->win, "Detune", 50, 250, 150, 44);
     ui->detune_slider->flags |= FAST_REDRAW;
@@ -359,7 +415,9 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->keys->mk_send_mod = get_mod;
     ui->keys->mk_send_volume = get_volume;
     ui->keys->mk_send_velocity = get_velocity;
+    ui->keys->mk_send_attack = get_attack;
     ui->keys->mk_send_sustain = get_sustain;
+    ui->keys->mk_send_release = get_release;
     ui->keys->mk_send_all_sound_off = get_all_sound_off;
     
     // finally map all Widgets on screen
@@ -450,6 +508,19 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
                 ui->midi_gate = value;
             }
         }
+    } else if (port_index == MIDIATTACK) {
+        if (ui->ignore_midi_attack) {
+            ui->ignore_midi_attack = false;
+            return;
+        }
+        if (ui->midi_attack != value) {
+            if(value>-0.1 && value<1.1) {
+                check_value_changed(ui->attack_slider->adj, &value);
+                // prevent event loop between host and plugin
+                ui->block_event = ATTACK;
+                ui->midi_attack = value;
+            }
+        }
     } else if (port_index == MIDISUSTAIN) {
         if (ui->ignore_midi_sustain) {
             ui->ignore_midi_sustain = false;
@@ -461,6 +532,19 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
                 // prevent event loop between host and plugin
                 ui->block_event = SUSTAIN;
                 ui->midi_sustain = value;
+            }
+        }
+    } else if (port_index == MIDIRELEASE) {
+        if (ui->ignore_midi_release) {
+            ui->ignore_midi_release = false;
+            return;
+        }
+        if (ui->midi_release != value) {
+            if(value>-0.1 && value<1.1) {
+                check_value_changed(ui->release_slider->adj, &value);
+                // prevent event loop between host and plugin
+                ui->block_event = RELEASE;
+                ui->midi_release = value;
             }
         }
     } else if (port_index == MIDIGAIN) {
@@ -480,8 +564,16 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
         check_value_changed(ui->button->adj, &value);
         // prevent event loop between host and plugin
         ui->block_event = (int)port_index;
+    } else if (port_index == ATTACK) {
+        check_value_changed(ui->attack_slider->adj, &value);
+        // prevent event loop between host and plugin
+        ui->block_event = (int)port_index;
     } else if (port_index == SUSTAIN) {
         check_value_changed(ui->sustain_slider->adj, &value);
+        // prevent event loop between host and plugin
+        ui->block_event = (int)port_index;
+    } else if (port_index == RELEASE) {
+        check_value_changed(ui->release_slider->adj, &value);
         // prevent event loop between host and plugin
         ui->block_event = (int)port_index;
     } else if (port_index == DETUNE) {

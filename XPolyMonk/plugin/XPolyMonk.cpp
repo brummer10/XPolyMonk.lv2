@@ -102,7 +102,9 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
     p->xmonk[i]->vowel = (double) p->vowel;
     p->xmonk[i]->panic = (double) p->panic;
     p->xmonk[i]->velocity = (double) p->velocity;
+    p->xmonk[i]->attack = (double) p->attack;
     p->xmonk[i]->sustain = (double) p->sustain;
+    p->xmonk[i]->release = (double) p->release;
     p->xmonk[i]->gain = (double) p->gain;
     p->xmonk[i]->detune = (double) p->detune * i * 0.1;
     p->xmonk[i]->compute_static(static_cast<int>(n_samples), output, output1, p->xmonk[i]);
@@ -122,6 +124,8 @@ XPolyMonk_::XPolyMonk_() :
   note(NULL),
   gate(NULL),
   panic(NULL),
+  attack(NULL),
+  release(NULL),
   vowel(NULL),
   detune(NULL),
   sustain(NULL),
@@ -185,6 +189,12 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
     case MIDIGAIN:
       gain = (float*)data;
       break;
+    case MIDIATTACK:
+      attack = (float*)data;
+      break;
+    case MIDIRELEASE:
+      release = (float*)data;
+      break;
     case NOTE:
       ui_note = (float*)data;
       break;
@@ -205,6 +215,12 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
       break;
     case DETUNE:
       detune = (float*)data;
+      break;
+    case ATTACK: 
+      ui_attack = (float*)data; // , 0.0, 0.0, 6.0, 1.0 
+      break;
+    case RELEASE: 
+      ui_release = (float*)data; // , 0.0, 0.0, 6.0, 1.0 
       break;
     default:
       break;
@@ -241,6 +257,16 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     if((*ui_vowel) != (_ui_vowel)) {
         _ui_vowel = (*ui_vowel);
         (*vowel) = (*ui_vowel);
+    }
+
+    if((*ui_attack) != (_ui_attack)) {
+        _ui_attack = (*ui_attack);
+        (*attack) = (*ui_attack);
+    }
+
+    if((*ui_release) != (_ui_release)) {
+        _ui_release = (*ui_release);
+        (*release) = (*ui_release);
     }
 
     if((*ui_gain) != (_ui_gain)) {
@@ -295,6 +321,14 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                         (*sustain) = (float) (msg[2]/127.0);
                         (*ui_sustain) = (*sustain);
                     default:
+                    case LV2_MIDI_CTL_SC4_ATTACK_TIME:
+                        (*attack) = (float) (msg[2]/127.0);
+                        (*ui_attack) = (*gain);
+                    break;
+                    case LV2_MIDI_CTL_SC3_RELEASE_TIME:
+                        (*release) = (float) (msg[2]/127.0);
+                        (*ui_release) = (*gain);
+                    break;
                     case LV2_MIDI_CTL_MSB_MAIN_VOLUME:
                         (*gain) = (float) (msg[2]/127.0);
                         (*ui_gain) = (*gain);
@@ -313,7 +347,9 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     }
     p->vowel = (*vowel);
     p->panic = (*panic);
+    p->attack = (*attack);
     p->sustain = (*sustain);
+    p->release = (*release);
     p->gain = (*gain);
     p->pitchbend = pitchbend;
     p->velocity = std::max<double>(0.1,velocity);
