@@ -3,6 +3,7 @@
 Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 
 ![xmonk](https://github.com/brummer10/XPolyMonk.lv2/raw/master/xmonk.png)
+![keyboard](https://github.com/brummer10/XPolyMonk.lv2/raw/master/keyboard.png)
 
 
 ## Features
@@ -15,7 +16,9 @@ Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 - NOTE_ON/NOTE_OFF (VELOCITY) -> play note
 - MODWHEEL CC 0x01 -> vowel parameter
 - PITCHBEND CC 0xE0 -> pitchbend parameter
+- ATTACK CC 0x49 -> attack parameter
 - SUSTAIN CC 0x40 -> sustain parameter
+- RELEASE CC 0x48 -> release parameter
 - RESET CC 0x79 -> reset all parameter
 - VOLUME CC 0x27 -> gain parameter
 - ALL_SOUNDS_OFF/ALL_NOTES_OFF CC 0x78 0x7B -> panic
