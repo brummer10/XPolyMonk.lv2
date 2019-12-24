@@ -32,7 +32,7 @@
 	# set bundle name
 	NAME = XPolyMonk
 	BUNDLE = $(NAME).lv2
-	VER = 0.4
+	VER = 0.5
 
 	LIB_DIR := ../libxputty/libxputty/
 	HEADER_DIR := $(LIB_DIR)include/
@@ -41,7 +41,7 @@
 	CXXFLAGS += -D_FORTIFY_SOURCE=2 -I. -I./dsp -I./plugin -fPIC -DPIC -O2 -Wall -fstack-protector -funroll-loops \
 	-ffast-math -fomit-frame-pointer -fstrength-reduce -fdata-sections \
 	-Wl,--gc-sections -Wl,-z,relro,-z,now -Wl,--exclude-libs,ALL -Wl,-z,defs $(SSE_CFLAGS)
-	LDFLAGS += -I. -shared -lm -Wl,-z,noexecstack -fvisibility=hidden -static-libstdc++ -static-libgcc 
+	LDFLAGS += -I. -shared -lm -Wl,-z,noexecstack -fvisibility=hidden
 	GUI_LDFLAGS += -I./gui -I$(HEADER_DIR) -Wl,-z,noexecstack -fvisibility=hidden \
 	-L. $(LIB_DIR)libxputty.a -shared `pkg-config --cflags --libs cairo x11` -lm 
 	# invoke build files
@@ -63,7 +63,7 @@ all : check $(NAME)
 	@echo $(NONE)
 
 mod : 
-	@echo "Not implemented for Gxgain"
+	@echo "Not implemented for XPolyMonk"
 
 check :
 ifdef ARMCPU
