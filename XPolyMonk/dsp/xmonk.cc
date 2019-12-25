@@ -98,6 +98,7 @@ private:
 	double fConst3;
 	double fConst6;
 	double fConst7;
+	double fConst8;
 	FAUSTFLOAT fHslider1;
 	FAUSTFLOAT fCheckbox0;
 	FAUSTFLOAT *fCheckbox1_;
@@ -118,6 +119,7 @@ private:
 	double fRec10[3];
 	double fRec11[3];
 	double fRec12[3];
+	double fRec13[3];
 	double TET;
 	double ref_freq;
 	double ref_note;
@@ -174,6 +176,7 @@ inline void Dsp::clear_state_f()
 	for (int l9 = 0; (l9 < 3); l9 = (l9 + 1)) fRec10[l9] = 0.0;
 	for (int l10 = 0; (l10 < 3); l10 = (l10 + 1)) fRec11[l10] = 0.0;
 	for (int l11 = 0; (l11 < 3); l11 = (l11 + 1)) fRec12[l11] = 0.0;
+	for (int l12 = 0; (l12 < 3); l12 = (l12 + 1)) fRec13[l12] = 0.0;
 }
 
 void Dsp::clear_state_f_static(Dsp *p)
@@ -195,6 +198,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	fConst5 = (3.1415926535897931 / fConst0);
 	fConst6 = (20.0 / fConst0);
 	fConst7 = (10.0 / fConst0);
+	fConst8 = (9.998 / fConst0);
 	fHslider0 = FAUSTFLOAT(80.0);
 	fHslider1 = FAUSTFLOAT(0.90000000000000002);
 	fCheckbox0 = FAUSTFLOAT(0.0);
@@ -294,11 +298,13 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		check_gate = panic_gate;
 		if(panic_gate ) for (int l11 = 0; (l11 < 3); l11 = (l11 + 1)) fRec12[l11] = 0.0;
 	}
-	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+fRec11[2]))* fCheckbox3;
+	double sustain_gate = (fRec11[2] > 0.0001) ? 1.0 : 0.0;
+	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+sustain_gate+fRec13[2]))* fCheckbox3;
 	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fRec12[0] *gatetmp));
 	double fSlow2 = (0.0010000000000000009 * double(fHslider2));
 	for (int i = 0; (i < count); i = (i + 1)) {
-		fRec11[0] = panic_gate ? 1.0 : std::min<double>(1.0,(fRec11[2] - (fConst7 - (fCheckbox2*fConst6*release))));
+		fRec11[0] = panic_gate ? 1.0 : std::min<double>(1.0,(fRec11[2] - (fConst7 - (fCheckbox2*fConst7))));
+		fRec13[0] = sustain_gate ? 1.0 : std::min<double>(1.0,(fRec13[2] - (fConst7 - std::min<double>(fConst8,fConst7*release))));
 		fRec12[0] = (gatetmp>0.0001) ? std::min<double>(1.0,(fRec12[2] + (velocity*fConst6*attack))) : 0.0;
 		fRec1[0] = (fConst1 + (fRec1[1] - std::floor((fConst1 + fRec1[1]))));
 		double fTemp0 = (fSlow0 * ((0.013000000000000001 * ftbl0mydspSIG0[int((65536.0 * fRec1[0]))]) + 1.0));
@@ -444,6 +450,8 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		fRec11[1] = fRec11[0];
 		fRec12[2] = fRec12[1];
 		fRec12[1] = fRec12[0];
+		fRec13[2] = fRec13[1];
+		fRec13[1] = fRec13[0];
 	}
 #undef fCheckbox1
 }
