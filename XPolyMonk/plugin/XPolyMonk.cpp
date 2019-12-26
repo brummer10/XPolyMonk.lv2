@@ -156,7 +156,7 @@ void XPolyMonk_::init_dsp_(uint32_t rate)
   delay->init_static(rate, delay); // init the DSP class
   pitchbend = 0.0;
   velocity = 1.0;
-  _ui_detune = 0.0;
+  _ui_detune = 2.0;
   clear_voice_list();
 }
 
@@ -265,6 +265,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     if((*ui_detune) != (_ui_detune)) {
         _ui_detune = (*ui_detune);
         (*detune) = (*ui_detune);
+        fprintf(stderr, "detune = %f\n", (*detune));
     }
 
     if((*ui_attack) != (_ui_attack)) {
