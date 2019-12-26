@@ -241,7 +241,7 @@ rdfs:comment """
         lv2:symbol "ATTACK" ;
         lv2:name "ATTACK" ;
         lv2:default 0.5 ;
-        lv2:minimum 1.0 ;
+        lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
     ]      , [
         a lv2:InputPort ,
@@ -250,7 +250,7 @@ rdfs:comment """
         lv2:symbol "RELEASE" ;
         lv2:name "RELEASE" ;
         lv2:default 0.5 ;
-        lv2:minimum 1.0 ;
+        lv2:minimum 0.0 ;
         lv2:maximum 1.0 ;
     ]      , [
         a lv2:OutputPort ,
