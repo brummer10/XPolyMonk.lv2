@@ -51,7 +51,7 @@
   guiext:ui <https://github.com/brummer10/XPolyMonk_gui>;
 
     lv2:minorVersion 0;
-    lv2:microVersion 4;
+    lv2:microVersion 5;
 
 rdfs:comment """
 
@@ -252,6 +252,16 @@ rdfs:comment """
         lv2:default 0.5 ;
         lv2:minimum 1.0 ;
         lv2:maximum 1.0 ;
+    ]      , [
+        a lv2:OutputPort ,
+            lv2:ControlPort ;
+        lv2:portProperty pprop:notOnGUI;
+        lv2:index 20 ;
+        lv2:symbol "MIDIDETUNE" ;
+        lv2:name "MIDIDETUNE" ;
+        lv2:default 64.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 127.0 ;
     ] .
 
 <https://github.com/brummer10/XPolyMonk_gui>

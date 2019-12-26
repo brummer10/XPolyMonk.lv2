@@ -54,6 +54,7 @@ typedef enum
    MIDIRELEASE,
    ATTACK,
    RELEASE,
+   MIDIDETUNE,
 } PortIndex;
 
 ////////////////////////////// forward declaration ///////////////////////////
@@ -195,7 +196,8 @@ private:
   float* gain;
   float* vowel;
   float* detune;
-  float detune_;
+  float* ui_detune;
+  float _ui_detune;
   float* ui_note;
   float* ui_gate;
   float* ui_vowel;

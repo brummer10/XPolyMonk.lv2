@@ -50,6 +50,7 @@ typedef struct {
     float release;
     float midi_note;
     float midi_vowel;
+    float midi_detune;
     float midi_gate;
     float midi_attack;
     float midi_sustain;
@@ -58,6 +59,7 @@ typedef struct {
     float detune;
     bool ignore_midi_note;
     bool ignore_midi_vowel;
+    bool ignore_midi_detune;
     bool ignore_midi_gate;
     bool ignore_midi_attack;
     bool ignore_midi_sustain;
@@ -157,6 +159,13 @@ static void get_mod(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     float v = (float)(*value)/32.0;
     check_value_changed(ui->win->adj_x, &v);
+}
+
+static void get_detune(Widget_t *w,int *value) {
+    X11_UI* ui = (X11_UI*)w->parent_struct;
+    if((*value)>64) (*value) *=1.01;
+    float v = (float)(*value)/64.0 - 1.0;
+    check_value_changed(ui->detune_slider->adj, &v);
 }
 
 static void get_volume(Widget_t *w,int *value) {
@@ -308,11 +317,13 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->panic = 1.0;
     ui->midi_note = 40.0;
     ui->midi_vowel = 2.0;
+    ui->midi_detune = 0.0;
     ui->midi_gate = 0.0;
     ui->midi_gain = 0.5;
     ui->detune = 0.0;
     ui->ignore_midi_note = true;
     ui->ignore_midi_vowel = true;
+    ui->ignore_midi_detune = true;
     ui->ignore_midi_gate = true;
     ui->ignore_midi_attack = true;
     ui->ignore_midi_sustain = true;
@@ -413,6 +424,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->keys->mk_send_pitch = get_pitch;
     ui->keys->mk_send_pitchsensity = get_sensity;
     ui->keys->mk_send_mod = get_mod;
+    ui->keys->mk_send_detune = get_detune;
     ui->keys->mk_send_volume = get_volume;
     ui->keys->mk_send_velocity = get_velocity;
     ui->keys->mk_send_attack = get_attack;
@@ -482,6 +494,19 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
                 // prevent event loop between host and plugin
                 ui->block_event = VOWEL;
                 ui->midi_vowel = value;
+            }
+        }
+    }  else if (port_index == MIDIDETUNE) {
+        if (ui->ignore_midi_detune) {
+            ui->ignore_midi_detune = false;
+            return;
+        }
+        if (ui->midi_detune != value) {
+            if(value>-1.1 && value<1.1) {
+                check_value_changed(ui->detune_slider->adj, &value);
+                // prevent event loop between host and plugin
+                ui->block_event = DETUNE;
+                ui->midi_detune = value;
             }
         }
     } else if (port_index == MIDINOTE) {

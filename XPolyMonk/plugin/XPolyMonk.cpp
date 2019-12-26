@@ -156,7 +156,7 @@ void XPolyMonk_::init_dsp_(uint32_t rate)
   delay->init_static(rate, delay); // init the DSP class
   pitchbend = 0.0;
   velocity = 1.0;
-  detune_ = 0.0;
+  _ui_detune = 0.0;
   clear_voice_list();
 }
 
@@ -186,6 +186,9 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
     case MIDISUSTAIN:
       sustain = (float*)data;
       break;
+    case MIDIDETUNE:
+      detune = (float*)data;
+      break;
     case MIDIGAIN:
       gain = (float*)data;
       break;
@@ -214,7 +217,7 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
       ui_gain = (float*)data;
       break;
     case DETUNE:
-      detune = (float*)data;
+      ui_detune = (float*)data;
       break;
     case ATTACK: 
       ui_attack = (float*)data; // , 0.0, 0.0, 6.0, 1.0 
@@ -257,6 +260,11 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     if((*ui_vowel) != (_ui_vowel)) {
         _ui_vowel = (*ui_vowel);
         (*vowel) = (*ui_vowel);
+    }
+
+    if((*ui_detune) != (_ui_detune)) {
+        _ui_detune = (*ui_detune);
+        (*detune) = (*ui_detune);
     }
 
     if((*ui_attack) != (_ui_attack)) {
@@ -332,6 +340,12 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                     case LV2_MIDI_CTL_MSB_MAIN_VOLUME:
                         (*gain) = (float) (msg[2]/127.0);
                         (*ui_gain) = (*gain);
+                    break;
+                    case LV2_MIDI_CTL_E4_DETUNE_DEPTH:
+                        float v = (float)msg[2];
+                        if(v>64.0) v *=1.01;
+                        (*detune) = v/64.0 - 1.0;
+                        (*ui_detune) = (*detune);
                     break;
                 }
             break;
