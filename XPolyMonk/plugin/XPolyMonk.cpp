@@ -265,7 +265,6 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     if((*ui_detune) != (_ui_detune)) {
         _ui_detune = (*ui_detune);
         (*detune) = (*ui_detune);
-        fprintf(stderr, "detune = %f\n", (*detune));
     }
 
     if((*ui_attack) != (_ui_attack)) {
