@@ -55,6 +55,7 @@ typedef enum
    ATTACK,
    RELEASE,
    MIDIDETUNE,
+   VIBRATO,
 } PortIndex;
 
 ////////////////////////////// forward declaration ///////////////////////////

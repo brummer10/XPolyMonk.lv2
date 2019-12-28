@@ -124,6 +124,8 @@ private:
 	double ref_freq;
 	double ref_note;
 	double max_note;
+	FAUSTFLOAT fHslider3;
+	FAUSTFLOAT	*fHslider3_;
 	int check_gate;
 	mydspSIG0* sig0;
 	double ftbl0mydspSIG0[65536];
@@ -191,7 +193,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	deletemydspSIG0(sig0);
 	fSamplingFreq = samplingFreq;
 	fConst0 = std::min<double>(192000.0, std::max<double>(1.0, double(fSamplingFreq)));
-	fConst1 = (6.0 / fConst0);
+	fConst1 = (6.0 / fConst0); //vibrato
 	fConst2 = std::exp((0.0 - (100.0 / fConst0)));
 	fConst3 = (1.0 - fConst2);
 	fConst4 = (1.0 / fConst0);
@@ -203,6 +205,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	fHslider1 = FAUSTFLOAT(0.90000000000000002);
 	fCheckbox0 = FAUSTFLOAT(0.0);
 	fHslider2 = FAUSTFLOAT(0.0);
+	fHslider3 = FAUSTFLOAT(6.0);
 	TET = 12.0;
 	ref_freq = 440.0;
 	ref_note = 69.0;
@@ -229,6 +232,7 @@ void Dsp::init_static(uint32_t samplingFreq, Dsp *p)
 void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *output1)
 {
 #define fCheckbox1 (*fCheckbox1_)
+#define fHslider3 (*fHslider3_)
 
 	fHslider0 = note;
 	fHslider1 = gain;
@@ -288,6 +292,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		break;
 	}
 
+	fConst1 = (fHslider3 / fConst0); //vibrato
 	double tempnote = std::min<double>(max_note, fHslider0+= detune);
 	double fSlow0 = double(ref_freq * pow(2.0, (tempnote- ref_note)/TET));
 	double notesplit = max_note* 0.714285714;
@@ -454,6 +459,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		fRec14[1] = fRec14[0];
 	}
 #undef fCheckbox1
+#undef fHslider3
 }
 
 void __rt_func Dsp::compute_static(int count, FAUSTFLOAT *output0, FAUSTFLOAT *output1, Dsp *p)
@@ -468,6 +474,9 @@ void Dsp::connect(uint32_t port,void* data)
 	{
 	case SCALE: 
 		fCheckbox1_ = (float*)data; // , 0.0, 0.0, 6.0, 1.0 
+		break;
+	case VIBRATO: 
+		fHslider3_ = (float*)data; // , 0.0, 0.0, 6.0, 1.0 
 		break;
 	default:
 		break;

@@ -21,6 +21,7 @@ Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 - RELEASE CC 0x48 -> release parameter
 - RESET CC 0x79 -> reset all parameter
 - VOLUME CC 0x27 -> gain parameter
+- DETUNE CC 0x5E -> Celeste Level or Detune
 - ALL_SOUNDS_OFF/ALL_NOTES_OFF CC 0x78 0x7B -> panic
 
 

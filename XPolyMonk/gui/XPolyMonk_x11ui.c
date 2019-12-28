@@ -33,6 +33,7 @@ typedef struct {
     Xputty main;
     Widget_t *win;
     Widget_t *widget;
+    Widget_t *vibrato_slider;
     Widget_t *button;
     Widget_t *key_button;
     Widget_t *sustain_slider;
@@ -43,6 +44,7 @@ typedef struct {
     MidiKeyboard *keys;
     int block_event;
     float sustain;
+    float vibrato;
     float panic;
     float pitchbend;
     float sensity;
@@ -311,16 +313,20 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
 
     ui->pitchbend = 0.0;
     ui->sensity = 64.0;
-    ui->attack = 0.5;
-    ui->release = 0.5;
+    ui->attack = 0.0;
+    ui->release = 0.0;
     ui->sustain = 0.0;
     ui->panic = 1.0;
-    ui->midi_note = 40.0;
-    ui->midi_vowel = 2.0;
+    ui->detune = 0.0;
+    ui->midi_note = 0.0;
+    ui->midi_vowel = 0.0;
+    ui->midi_attack = 0.0;
+    ui->midi_sustain = 0.0;
+    ui->midi_release = 0.0;
     ui->midi_detune = 0.0;
     ui->midi_gate = 0.0;
-    ui->midi_gain = 0.5;
-    ui->detune = 0.0;
+    ui->midi_gain = 0.0;
+    ui->midi_detune = 0.0;
     ui->ignore_midi_note = true;
     ui->ignore_midi_vowel = true;
     ui->ignore_midi_detune = true;
@@ -358,6 +364,14 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     set_adjustment(ui->widget->adj,0.0, 0.25, 0.0, 1.0, 0.005, CL_CONTINUOS);
     // connect the value changed callback with the write_function
     ui->widget->func.value_changed_callback = value_changed;
+
+    ui->vibrato_slider = add_vslider(ui->win, "Vibrato", 50, 10, 44, 240);
+    ui->vibrato_slider->flags |= FAST_REDRAW;
+    ui->vibrato_slider->scale.gravity = CENTER;
+    set_adjustment(ui->vibrato_slider->adj,6.0, 6.0, 1.0, 12.0, 0.1, CL_CONTINUOS);
+    ui->vibrato_slider->parent_struct = ui;
+    ui->vibrato_slider->data = VIBRATO;
+    ui->vibrato_slider->func.value_changed_callback = value_changed;
 
     // only enable internal keyboard when we've instance access
     if (instance_access) {
@@ -469,146 +483,167 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
                         const void * buffer) {
     X11_UI* ui = (X11_UI*)handle;
     float value = *(float*)buffer;
-    if (port_index == GAIN) {
-        check_value_changed(ui->widget->adj, &value);
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
-    } else if (port_index == VOWEL) {
-        check_value_changed(ui->win->adj_x, &value);
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
-    } else if (port_index == NOTE) {
-        check_value_changed(ui->win->adj_y, &value);
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
-    } else if (port_index == GATE) {
-        adj_changed(ui->win, GATE, value);
-    }  else if (port_index == MIDIVOWEL) {
-        if (ui->ignore_midi_vowel) {
-            ui->ignore_midi_vowel = false;
-            return;
-        }
-        if (ui->midi_vowel != value) {
-            if(value>-0.1 && value<4.1) {
-                check_value_changed(ui->win->adj_x, &value);
-                // prevent event loop between host and plugin
-                ui->block_event = VOWEL;
-                ui->midi_vowel = value;
+    switch (port_index) {
+        case MIDIVOWEL:
+            if (ui->ignore_midi_vowel) {
+                ui->ignore_midi_vowel = false;
+                return;
             }
-        }
-    }  else if (port_index == MIDIDETUNE) {
-        if (ui->ignore_midi_detune) {
-            ui->ignore_midi_detune = false;
-            return;
-        }
-        if (ui->midi_detune != value) {
-            if(value>-1.1 && value<1.1) {
-                check_value_changed(ui->detune_slider->adj, &value);
-                // prevent event loop between host and plugin
-                ui->block_event = DETUNE;
-                ui->midi_detune = value;
+            if (ui->midi_vowel != value) {
+                if(value>-0.1 && value<4.1) {
+                    check_value_changed(ui->win->adj_x, &value);
+                    // prevent event loop between host and plugin
+                    ui->block_event = VOWEL;
+                    ui->midi_vowel = value;
+                }
             }
-        }
-    } else if (port_index == MIDINOTE) {
-        if (ui->ignore_midi_note) {
-            ui->ignore_midi_note = false;
-            return;
-        }
-        if (ui->midi_note != value) {
-            if(value >-1.0 && value<127.0) {
-                check_value_changed(ui->win->adj_y, &value);
-                // prevent event loop between host and plugin
-                ui->block_event = NOTE;
-                ui->midi_note = value;
+        break;    
+        case MIDIDETUNE:
+            if (ui->ignore_midi_detune) {
+                ui->ignore_midi_detune = false;
+                return;
             }
-        }
-    } else if (port_index == MIDIGATE) {
-        if (ui->ignore_midi_gate) {
-            ui->ignore_midi_gate = false;
-            return;
-        }
-        if (ui->midi_gate != value) {
-            if(value>-0.1 && value<1.1) {
-                adj_changed(ui->win, GATE, value);
-                ui->midi_gate = value;
+            if (ui->midi_detune != value) {
+                if(value>-1.1 && value<1.1) {
+                    check_value_changed(ui->detune_slider->adj, &value);
+                    // prevent event loop between host and plugin
+                    ui->block_event = DETUNE;
+                    ui->midi_detune = value;
+                }
             }
-        }
-    } else if (port_index == MIDIATTACK) {
-        if (ui->ignore_midi_attack) {
-            ui->ignore_midi_attack = false;
-            return;
-        }
-        if (ui->midi_attack != value) {
-            if(value>-0.1 && value<1.1) {
-                check_value_changed(ui->attack_slider->adj, &value);
-                // prevent event loop between host and plugin
-                ui->block_event = ATTACK;
-                ui->midi_attack = value;
+        break;
+        case MIDINOTE:
+            if (ui->ignore_midi_note) {
+                ui->ignore_midi_note = false;
+                return;
             }
-        }
-    } else if (port_index == MIDISUSTAIN) {
-        if (ui->ignore_midi_sustain) {
-            ui->ignore_midi_sustain = false;
-            return;
-        }
-        if (ui->midi_sustain != value) {
-            if(value>-0.1 && value<1.1) {
-                check_value_changed(ui->sustain_slider->adj, &value);
-                // prevent event loop between host and plugin
-                ui->block_event = SUSTAIN;
-                ui->midi_sustain = value;
+            if (ui->midi_note != value) {
+                if(value >-1.0 && value<127.0) {
+                    check_value_changed(ui->win->adj_y, &value);
+                    // prevent event loop between host and plugin
+                    ui->block_event = NOTE;
+                    ui->midi_note = value;
+                }
             }
-        }
-    } else if (port_index == MIDIRELEASE) {
-        if (ui->ignore_midi_release) {
-            ui->ignore_midi_release = false;
-            return;
-        }
-        if (ui->midi_release != value) {
-            if(value>-0.1 && value<1.1) {
-                check_value_changed(ui->release_slider->adj, &value);
-                // prevent event loop between host and plugin
-                ui->block_event = RELEASE;
-                ui->midi_release = value;
+        break;
+        case MIDIGATE:
+            if (ui->ignore_midi_gate) {
+                ui->ignore_midi_gate = false;
+                return;
             }
-        }
-    } else if (port_index == MIDIGAIN) {
-        if (ui->ignore_midi_gain) {
-            ui->ignore_midi_gain = false;
-            return;
-        }
-        if (ui->midi_gain != value) {
-            if(value>-0.1 && value<1.1) {
-                check_value_changed(ui->widget->adj, &value);
-                // prevent event loop between host and plugin
-                ui->block_event = GAIN;
-                ui->midi_gain = value;
+            if (ui->midi_gate != value) {
+                if(value>-0.1 && value<1.1) {
+                    adj_changed(ui->win, GATE, value);
+                    ui->midi_gate = value;
+                }
             }
-        }
-    } else if (port_index == SCALE) {
-        check_value_changed(ui->button->adj, &value);
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
-    } else if (port_index == ATTACK) {
-        check_value_changed(ui->attack_slider->adj, &value);
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
-    } else if (port_index == SUSTAIN) {
-        check_value_changed(ui->sustain_slider->adj, &value);
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
-    } else if (port_index == RELEASE) {
-        check_value_changed(ui->release_slider->adj, &value);
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
-    } else if (port_index == DETUNE) {
-        check_value_changed(ui->detune_slider->adj, &value);
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
-    } else if (port_index == PANIC) {
-        ui->panic = value;
-        // prevent event loop between host and plugin
-        ui->block_event = (int)port_index;
+        break;
+        case MIDIATTACK:
+            if (ui->ignore_midi_attack) {
+                ui->ignore_midi_attack = false;
+                return;
+            }
+            if (ui->midi_attack != value) {
+                if(value>-0.1 && value<1.1) {
+                    check_value_changed(ui->attack_slider->adj, &value);
+                    // prevent event loop between host and plugin
+                    ui->block_event = ATTACK;
+                    ui->midi_attack = value;
+                }
+            }
+        break;
+        case MIDISUSTAIN:
+            if (ui->ignore_midi_sustain) {
+                ui->ignore_midi_sustain = false;
+                return;
+            }
+            if (ui->midi_sustain != value) {
+                if(value>-0.1 && value<1.1) {
+                    check_value_changed(ui->sustain_slider->adj, &value);
+                    // prevent event loop between host and plugin
+                    ui->block_event = SUSTAIN;
+                    ui->midi_sustain = value;
+                }
+            }
+        break;
+        case MIDIRELEASE:
+            if (ui->ignore_midi_release) {
+                ui->ignore_midi_release = false;
+                return;
+            }
+            if (ui->midi_release != value) {
+                if(value>-0.1 && value<1.1) {
+                    check_value_changed(ui->release_slider->adj, &value);
+                    // prevent event loop between host and plugin
+                    ui->block_event = RELEASE;
+                    ui->midi_release = value;
+                }
+            }
+        break;
+        case MIDIGAIN:
+            if (ui->ignore_midi_gain) {
+                ui->ignore_midi_gain = false;
+                return;
+            }
+            if (ui->midi_gain != value) {
+                if(value>-0.1 && value<1.1) {
+                    check_value_changed(ui->widget->adj, &value);
+                    // prevent event loop between host and plugin
+                    ui->block_event = GAIN;
+                    ui->midi_gain = value;
+                }
+            }
+        break;
+        case GAIN:
+            check_value_changed(ui->widget->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case VOWEL:
+            check_value_changed(ui->win->adj_x, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case NOTE:
+            check_value_changed(ui->win->adj_y, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case GATE:
+            adj_changed(ui->win, GATE, value);
+        break;
+        case SCALE:
+            check_value_changed(ui->button->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case ATTACK:
+            check_value_changed(ui->attack_slider->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case SUSTAIN:
+            check_value_changed(ui->sustain_slider->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case RELEASE:
+            check_value_changed(ui->release_slider->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case DETUNE:
+            check_value_changed(ui->detune_slider->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case PANIC:
+            ui->panic = value;
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        default:
+        break;
     }
 }
 
