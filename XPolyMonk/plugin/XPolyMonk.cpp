@@ -83,7 +83,7 @@ void PolyVoice::init_poly(PolyVoice *p, uint32_t rate) {
   }
   last_voice = 0;
   velocity = 1.0;
-  sustain = 0.5;
+  hold = 0.5;
   detune = 0.0;
 }
 
@@ -103,7 +103,9 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
     p->xmonk[i]->panic = (double) p->panic;
     p->xmonk[i]->velocity = (double) p->velocity;
     p->xmonk[i]->attack = (double) p->attack;
+    p->xmonk[i]->decay = (double) p->decay;
     p->xmonk[i]->sustain = (double) p->sustain;
+    p->xmonk[i]->hold = (double) p->hold;
     p->xmonk[i]->release = (double) p->release;
     p->xmonk[i]->gain = (double) p->gain;
     p->xmonk[i]->detune = (double) p->detune * i * 0.1;
@@ -125,11 +127,13 @@ XPolyMonk_::XPolyMonk_() :
   gate(NULL),
   panic(NULL),
   attack(NULL),
+  decay(NULL),
+  sustain(NULL),
   release(NULL),
   gain(NULL),
   vowel(NULL),
   detune(NULL),
-  sustain(NULL),
+  hold(NULL),
   output(NULL),
   output1(NULL),
   p(init_()),
@@ -211,8 +215,8 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
     case PANIC:
       panic = (float*)data;
       break;
-    case SUSTAIN:
-      ui_sustain = (float*)data;
+    case HOLD:
+      ui_hold = (float*)data;
       break;
     case GAIN:
       ui_gain = (float*)data;
@@ -222,6 +226,12 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
       break;
     case ATTACK: 
       ui_attack = (float*)data;
+      break;
+    case DECAY: 
+      ui_decay = (float*)data;
+      break;
+    case SUSTAIN: 
+      ui_sustain = (float*)data;
       break;
     case RELEASE: 
       ui_release = (float*)data; 
@@ -251,10 +261,10 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     if(n_samples<1) return;
     MXCSR.set_();
 
-    if((*ui_sustain) != _ui_sustain) {
-        if(!(int)floor((*ui_sustain)) && (int)floor((_ui_sustain)))
+    if((*ui_hold) != _ui_hold) {
+        if(!(int)floor((*ui_hold)) && (int)floor((_ui_hold)))
             clear_voice_list();
-       _ui_sustain = (*ui_sustain);
+       _ui_hold = (*ui_hold);
     }
 
     if((*ui_vowel) != (_ui_vowel)) {
@@ -267,6 +277,14 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
 
     if((*ui_attack) != (_ui_attack)) {
         _ui_attack = (*ui_attack);
+    }
+
+    if((*ui_decay) != (_ui_decay)) {
+        _ui_decay = (*ui_decay);
+    }
+
+    if((*ui_sustain) != (_ui_sustain)) {
+        _ui_sustain = (*ui_sustain);
     }
 
     if((*ui_release) != (_ui_release)) {
@@ -357,7 +375,9 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     p->vowel = (*ui_vowel);
     p->panic = (*panic);
     p->attack = (*ui_attack);
+    p->decay = (*ui_decay);
     p->sustain = (*ui_sustain);
+    p->hold = (*ui_hold);
     p->release = (*ui_release);
     p->gain = (*ui_gain);
     p->pitchbend = pitchbend;

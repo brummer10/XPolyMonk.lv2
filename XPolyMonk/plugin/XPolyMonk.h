@@ -42,7 +42,7 @@ typedef enum
    VOWEL,
    MIDI_IN,
    SCALE,
-   SUSTAIN,
+   HOLD,
    PANIC,
    MIDINOTE,
    MIDIVOWEL,
@@ -56,6 +56,8 @@ typedef enum
    RELEASE,
    MIDIDETUNE,
    VIBRATO,
+   DECAY,
+   SUSTAIN,
 } PortIndex;
 
 ////////////////////////////// forward declaration ///////////////////////////
@@ -160,7 +162,9 @@ public:
   float pitchbend;
   float velocity;
   float attack;
+  float decay;
   float sustain;
+  float hold;
   float release;
   float gain;
 
@@ -188,10 +192,18 @@ private:
   float _panic;
   float* attack;
   float _attack;
+  float* decay;
+  float _decay;
+  float* sustain;
+  float _sustain;
   float* release;
   float _release;
   float* ui_attack;
   float _ui_attack;
+  float* ui_decay;
+  float _ui_decay;
+  float* ui_sustain;
+  float _ui_sustain;
   float* ui_release;
   float _ui_release;
   float* gain;
@@ -203,9 +215,9 @@ private:
   float* ui_gate;
   float* ui_vowel;
   float _ui_vowel;
-  float* ui_sustain;
-  float _ui_sustain;
-  float* sustain;
+  float* ui_hold;
+  float _ui_hold;
+  float* hold;
   float* ui_gain;
   float _ui_gain;
 
