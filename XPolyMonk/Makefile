@@ -3,9 +3,9 @@
 	# check if user is root
 	user = $(shell whoami)
 	ifeq ($(user),root)
-	INSTALL_DIR = /usr/lib/lv2
+	INSTALL_DIR ?= /usr/lib/lv2
 	else 
-	INSTALL_DIR = ~/.lv2
+	INSTALL_DIR ?= ~/.lv2
 	endif
 
 	# check CPU and supported optimization flags
