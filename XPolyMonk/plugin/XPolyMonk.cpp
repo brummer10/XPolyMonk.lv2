@@ -107,6 +107,7 @@ void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float*
     p->xmonk[i]->sustain = (double) p->sustain;
     p->xmonk[i]->hold = (double) p->hold;
     p->xmonk[i]->release = (double) p->release;
+    p->xmonk[i]->env_amp = (double) p->env_amp;
     p->xmonk[i]->gain = (double) p->gain;
     p->xmonk[i]->detune = (double) p->detune * i * 0.1;
     p->xmonk[i]->compute_static(static_cast<int>(n_samples), output, output1, p->xmonk[i]);
@@ -235,6 +236,8 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
       break;
     case RELEASE: 
       ui_release = (float*)data; 
+    case ENV_AMP: 
+      ui_env_amp = (float*)data; 
       break;
     default:
       break;
@@ -289,6 +292,10 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
 
     if((*ui_release) != (_ui_release)) {
         _ui_release = (*ui_release);
+    }
+
+    if((*ui_env_amp) != (_ui_env_amp)) {
+        _ui_env_amp = (*ui_env_amp);
     }
 
     if((*ui_gain) != (_ui_gain)) {
@@ -379,6 +386,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
     p->sustain = (*ui_sustain);
     p->hold = (*ui_hold);
     p->release = (*ui_release);
+    p->env_amp = (*ui_env_amp);
     p->gain = (*ui_gain);
     p->pitchbend = pitchbend;
     p->velocity = std::max<double>(0.1,velocity);

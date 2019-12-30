@@ -43,6 +43,7 @@ typedef struct {
     Widget_t *sustain_slider;
     Widget_t *hold_slider;
     Widget_t *release_slider;
+    Widget_t *env_amp_slider;
     MidiKeyboard *keys;
     int block_event;
     float hold;
@@ -54,6 +55,7 @@ typedef struct {
     float decay;
     float sustain;
     float release;
+    float env_amp;
     float midi_note;
     float midi_vowel;
     float midi_detune;
@@ -282,6 +284,14 @@ static void release_slider_callback(void *w_, void* user_data) {
     value_changed(w_, user_data);
 }
 
+static void env_amp_slider_callback(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    Widget_t *p = (Widget_t*)w->parent;
+    X11_UI* ui = (X11_UI*)p->parent_struct;
+    ui->env_amp = adj_get_value(w->adj);
+    value_changed(w_, user_data);
+}
+
 static void detune_slider_callback(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
     Widget_t *p = (Widget_t*)w->parent;
@@ -344,6 +354,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->sustain = 0.0;
     ui->release = 0.0;
     ui->hold = 0.0;
+    ui->env_amp = 0.0;
     ui->panic = 1.0;
     ui->detune = 0.0;
     ui->midi_note = 0.0;
@@ -396,7 +407,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->vibrato_slider = add_vslider(ui->win, "Vibrato", 50, 10, 44, 240);
     ui->vibrato_slider->flags |= FAST_REDRAW;
     ui->vibrato_slider->scale.gravity = CENTER;
-    set_adjustment(ui->vibrato_slider->adj,6.0, 6.0, 1.0, 12.0, 0.1, CL_CONTINUOS);
+    set_adjustment(ui->vibrato_slider->adj,6.0, 6.0, 0.0, 12.0, 0.1, CL_CONTINUOS);
     ui->vibrato_slider->parent_struct = ui;
     ui->vibrato_slider->data = VIBRATO;
     ui->vibrato_slider->func.value_changed_callback = value_changed;
@@ -447,6 +458,14 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->release_slider->parent_struct = ui;
     ui->release_slider->data = RELEASE;
     ui->release_slider->func.value_changed_callback = release_slider_callback;
+
+    ui->env_amp_slider = add_hslider(ui->win, "Env Amp", 410, 250, 240, 44);
+    ui->env_amp_slider->flags |= FAST_REDRAW;
+    ui->env_amp_slider->scale.gravity = CENTER;
+    set_adjustment(ui->env_amp_slider->adj,1.0, 1.0, 0.5, 2.0, 0.01, CL_CONTINUOS);
+    ui->env_amp_slider->parent_struct = ui;
+    ui->env_amp_slider->data = ENV_AMP;
+    ui->env_amp_slider->func.value_changed_callback = env_amp_slider_callback;
 
     ui->detune_slider = add_hslider(ui->win, "Detune", 200, 340, 240, 44);
     ui->detune_slider->flags |= FAST_REDRAW;
@@ -644,6 +663,11 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
+        case VIBRATO:
+            check_value_changed(ui->vibrato_slider->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
         case VOWEL:
             check_value_changed(ui->win->adj_x, &value);
             // prevent event loop between host and plugin
@@ -684,6 +708,11 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
         break;
         case RELEASE:
             check_value_changed(ui->release_slider->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case ENV_AMP:
+            check_value_changed(ui->env_amp_slider->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;

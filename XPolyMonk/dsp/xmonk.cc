@@ -147,6 +147,7 @@ public:
 	double sustain;
 	double hold;
 	double release;
+	double env_amp;
 	double detune;
 	double gain;
 	static void clear_state_f_static(Dsp*);
@@ -225,6 +226,7 @@ inline void Dsp::init(uint32_t samplingFreq)
 	sustain = 0.5;
 	hold = 0.5;
 	release = 0.5;
+	env_amp = 1.0;
 	max_note = 84.0;
 	check_gate = 0.0;
 	gain = 0.5;
@@ -314,7 +316,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
     //fprintf(stderr, "attack %f decay %f sustain %f hold %f release %f\n", fRec12[0], fRec13[0], sustain, fRec11[0],fRec14[0]);
 	double hold_gate = fRec11[0]>0.0001 ? 1.0 : 0.0;
 	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+hold_gate+fRec14[2]))* fCheckbox3;
-	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fRec12[0] *gatetmp * fRec13[0]));
+	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fRec12[0] *gatetmp * fRec13[0]) * env_amp);
 	double fSlow2 = (0.0010000000000000009 * double(fHslider2));
 	for (int i = 0; (i < count); i = (i + 1)) {
 		fRec11[0] = panic_gate ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec11[2] - (fConst7 - (fCheckbox2*fConst7)))));

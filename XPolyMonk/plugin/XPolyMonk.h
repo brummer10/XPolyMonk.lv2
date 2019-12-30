@@ -58,6 +58,7 @@ typedef enum
    VIBRATO,
    DECAY,
    SUSTAIN,
+   ENV_AMP,
 } PortIndex;
 
 ////////////////////////////// forward declaration ///////////////////////////
@@ -166,6 +167,7 @@ public:
   float sustain;
   float hold;
   float release;
+  float env_amp;
   float gain;
 
   void init_poly(PolyVoice *p, uint32_t rate);
@@ -206,6 +208,8 @@ private:
   float _ui_sustain;
   float* ui_release;
   float _ui_release;
+  float* ui_env_amp;
+  float _ui_env_amp;
   float* gain;
   float* vowel;
   float* detune;
