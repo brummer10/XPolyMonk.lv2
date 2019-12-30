@@ -32,7 +32,7 @@ typedef struct {
     void *parentXwindow;
     Xputty main;
     Widget_t *win;
-    Widget_t *widget;
+    Widget_t *gain_slider;
     Widget_t *vibrato_slider;
     Widget_t *button;
     Widget_t *key_button;
@@ -46,16 +46,9 @@ typedef struct {
     Widget_t *env_amp_slider;
     MidiKeyboard *keys;
     int block_event;
-    float hold;
-    float vibrato;
     float panic;
     float pitchbend;
     float sensity;
-    float attack;
-    float decay;
-    float sustain;
-    float release;
-    float env_amp;
     float midi_note;
     float midi_vowel;
     float midi_detune;
@@ -181,7 +174,7 @@ static void get_detune(Widget_t *w,int *value) {
 static void get_volume(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     float v = (float)(*value)/127.0;
-    check_value_changed(ui->widget->adj, &v);
+    check_value_changed(ui->gain_slider->adj, &v);
 }
 
 static void get_velocity(Widget_t *w,int *value) {
@@ -244,64 +237,32 @@ static void keyboard_hidden(void *w_, void* user_data) {
     adj_set_value(ui->key_button->adj,0.0);
 }
 
-static void attack_slider_callback(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    X11_UI* ui = (X11_UI*)p->parent_struct;
-    ui->attack = adj_get_value(w->adj);
-    value_changed(w_, user_data);
+static void dummy_event(void *w_, void* user_data) {
+    // just overwite event with nothing
 }
 
-static void decay_slider_callback(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    X11_UI* ui = (X11_UI*)p->parent_struct;
-    ui->decay = adj_get_value(w->adj);
-    value_changed(w_, user_data);
+Widget_t* add_polymonk_vslider(Widget_t *w, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_vslider(ui->win, label, x, y, width, height);
+    w->flags |= FAST_REDRAW;
+    w->scale.gravity = CENTER;
+    set_adjustment(w->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
+    w->parent_struct = ui;
+    w->data = index;
+    w->func.value_changed_callback = value_changed;
+    return w;
 }
 
-static void sustain_slider_callback(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    X11_UI* ui = (X11_UI*)p->parent_struct;
-    ui->sustain = adj_get_value(w->adj);
-    value_changed(w_, user_data);
-}
-
-static void hold_slider_callback(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    X11_UI* ui = (X11_UI*)p->parent_struct;
-    ui->hold = adj_get_value(w->adj);
-    value_changed(w_, user_data);
-}
-
-static void release_slider_callback(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    X11_UI* ui = (X11_UI*)p->parent_struct;
-    ui->release = adj_get_value(w->adj);
-    value_changed(w_, user_data);
-}
-
-static void env_amp_slider_callback(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    X11_UI* ui = (X11_UI*)p->parent_struct;
-    ui->env_amp = adj_get_value(w->adj);
-    value_changed(w_, user_data);
-}
-
-static void detune_slider_callback(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    Widget_t *p = (Widget_t*)w->parent;
-    X11_UI* ui = (X11_UI*)p->parent_struct;
-    ui->detune = adj_get_value(w->adj);
-    value_changed(w_, user_data);
-}
-
-static void dummy(void *w_, void* user_data) {
-
+Widget_t* add_polymonk_hslider(Widget_t *w, PortIndex index, const char * label,
+                                X11_UI* ui, int x, int y, int width, int height) {
+    w = add_hslider(ui->win, label, x, y, width, height);
+    w->flags |= FAST_REDRAW;
+    w->scale.gravity = CENTER;
+    set_adjustment(w->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
+    w->parent_struct = ui;
+    w->data = index;
+    w->func.value_changed_callback = value_changed;
+    return w;
 }
 
 // init the xwindow and return the LV2UI handle
@@ -349,14 +310,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
 
     ui->pitchbend = 0.0;
     ui->sensity = 64.0;
-    ui->attack = 0.0;
-    ui->decay = 0.0;
-    ui->sustain = 0.0;
-    ui->release = 0.0;
-    ui->hold = 0.0;
-    ui->env_amp = 0.0;
     ui->panic = 1.0;
-    ui->detune = 0.0;
     ui->midi_note = 0.0;
     ui->midi_vowel = 0.0;
     ui->midi_attack = 0.0;
@@ -381,36 +335,31 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
      // store a pointer to the X11_UI struct in the parent_struct Widget_t field
     ui->win->parent_struct = ui;
     widget_get_png(ui->win, LDVAR(mandala_png));
+    // vowel
     ui->win->adj_x = add_adjustment(ui->win,2.0, 2.0, 0.0, 4.0, 0.02, CL_CONTINUOS);
+    // note
     ui->win->adj_y = add_adjustment(ui->win,40.0, 40.0, 28.0, 52.0, 0.1, CL_NONE);
-    //ui->win->func.adj_callback = _motion;
     ui->win->func.value_changed_callback = _motion;
-    //ui->win->func.button_press_callback = window_button_press;
-    //ui->win->func.button_release_callback = window_button_release;
     ui->win->func.key_release_callback = win_key_release;
     // connect the expose func
     ui->win->func.expose_callback = draw_window;
 
-    // create a slider widget
-    ui->widget = add_vslider(ui->win, "Gain", 5, 10, 44, 240);
-    ui->widget->flags |= FAST_REDRAW;
-    ui->widget->scale.gravity = CENTER;
-    // store the port index in the Widget_t data field
-    ui->widget->data = GAIN;
-    // store a pointer to the X11_UI struct in the parent_struct Widget_t field
-    ui->widget->parent_struct = ui;
-    // set the slider adjustment to the needed range
-    set_adjustment(ui->widget->adj,0.0, 0.25, 0.0, 1.0, 0.005, CL_CONTINUOS);
-    // connect the value changed callback with the write_function
-    ui->widget->func.value_changed_callback = value_changed;
-
-    ui->vibrato_slider = add_vslider(ui->win, "Vibrato", 50, 10, 44, 240);
-    ui->vibrato_slider->flags |= FAST_REDRAW;
-    ui->vibrato_slider->scale.gravity = CENTER;
+    // create slider widgets
+    ui->gain_slider = add_polymonk_vslider(ui->gain_slider, GAIN, "Gain", ui, 5, 10, 44, 240);
+    ui->vibrato_slider = add_polymonk_vslider(ui->vibrato_slider, VIBRATO,"Vibrato", ui, 50, 10, 44, 240);
     set_adjustment(ui->vibrato_slider->adj,6.0, 6.0, 0.0, 12.0, 0.1, CL_CONTINUOS);
-    ui->vibrato_slider->parent_struct = ui;
-    ui->vibrato_slider->data = VIBRATO;
-    ui->vibrato_slider->func.value_changed_callback = value_changed;
+
+    ui->attack_slider = add_polymonk_vslider(ui->attack_slider, ATTACK, "Attack", ui, 414, 10, 44, 240);
+    ui->decay_slider = add_polymonk_vslider(ui->decay_slider, DECAY, "Decay", ui, 458, 10, 44, 240);
+    ui->sustain_slider = add_polymonk_vslider(ui->sustain_slider, SUSTAIN, "Sustain", ui, 502, 10, 44, 240);
+    ui->hold_slider = add_polymonk_vslider(ui->hold_slider, HOLD, "Hold", ui, 546, 10, 44, 240);
+    ui->release_slider = add_polymonk_vslider(ui->release_slider, RELEASE, "Release", ui, 590, 10, 44, 240);
+
+    ui->env_amp_slider = add_polymonk_hslider(ui->win, ENV_AMP, "Env Amp", ui, 410, 250, 240, 44);
+    set_adjustment(ui->env_amp_slider->adj,1.0, 1.0, 0.5, 2.0, 0.01, CL_CONTINUOS);
+
+    ui->detune_slider = add_polymonk_hslider(ui->win, DETUNE, "Detune", ui, 200, 340, 240, 44);
+    set_adjustment(ui->detune_slider->adj,0.0, 0.0, -1.0, 1.0, 0.01, CL_CONTINUOS);
 
     // only enable internal keyboard when we've instance access
     if (instance_access) {
@@ -419,63 +368,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
         ui->key_button->func.value_changed_callback = key_button_callback;
     }
 
-    ui->attack_slider = add_vslider(ui->win, "Attack", 414, 10, 44, 240);
-    ui->attack_slider->flags |= FAST_REDRAW;
-    ui->attack_slider->scale.gravity = CENTER;
-    set_adjustment(ui->attack_slider->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
-    ui->attack_slider->parent_struct = ui;
-    ui->attack_slider->data = ATTACK;
-    ui->attack_slider->func.value_changed_callback = attack_slider_callback;
-
-    ui->decay_slider = add_vslider(ui->win, "Decay", 458, 10, 44, 240);
-    ui->decay_slider->flags |= FAST_REDRAW;
-    ui->decay_slider->scale.gravity = CENTER;
-    set_adjustment(ui->decay_slider->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
-    ui->decay_slider->parent_struct = ui;
-    ui->decay_slider->data = DECAY;
-    ui->decay_slider->func.value_changed_callback = decay_slider_callback;
-
-    ui->sustain_slider = add_vslider(ui->win, "Sustain", 502, 10, 44, 240);
-    ui->sustain_slider->flags |= FAST_REDRAW;
-    ui->sustain_slider->scale.gravity = CENTER;
-    set_adjustment(ui->sustain_slider->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
-    ui->sustain_slider->parent_struct = ui;
-    ui->sustain_slider->data = SUSTAIN;
-    ui->sustain_slider->func.value_changed_callback = sustain_slider_callback;
-
-    ui->hold_slider = add_vslider(ui->win, "Hold", 546, 10, 44, 240);
-    ui->hold_slider->flags |= FAST_REDRAW;
-    ui->hold_slider->scale.gravity = CENTER;
-    set_adjustment(ui->hold_slider->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
-    ui->hold_slider->parent_struct = ui;
-    ui->hold_slider->data = HOLD;
-    ui->hold_slider->func.value_changed_callback = hold_slider_callback;
-
-    ui->release_slider = add_vslider(ui->win, "Release", 590, 10, 44, 240);
-    ui->release_slider->flags |= FAST_REDRAW;
-    ui->release_slider->scale.gravity = CENTER;
-    set_adjustment(ui->release_slider->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
-    ui->release_slider->parent_struct = ui;
-    ui->release_slider->data = RELEASE;
-    ui->release_slider->func.value_changed_callback = release_slider_callback;
-
-    ui->env_amp_slider = add_hslider(ui->win, "Env Amp", 410, 250, 240, 44);
-    ui->env_amp_slider->flags |= FAST_REDRAW;
-    ui->env_amp_slider->scale.gravity = CENTER;
-    set_adjustment(ui->env_amp_slider->adj,1.0, 1.0, 0.5, 2.0, 0.01, CL_CONTINUOS);
-    ui->env_amp_slider->parent_struct = ui;
-    ui->env_amp_slider->data = ENV_AMP;
-    ui->env_amp_slider->func.value_changed_callback = env_amp_slider_callback;
-
-    ui->detune_slider = add_hslider(ui->win, "Detune", 200, 340, 240, 44);
-    ui->detune_slider->flags |= FAST_REDRAW;
-    ui->detune_slider->scale.gravity = CENTER;
-    set_adjustment(ui->detune_slider->adj,0.0, 0.0, -1.0, 1.0, 0.01, CL_CONTINUOS);
-    ui->detune_slider->parent_struct = ui;
-    ui->detune_slider->data = DETUNE;
-    ui->detune_slider->func.value_changed_callback = detune_slider_callback;
-
-    // create a combobox widget
+    // create combobox widget
     ui->button = add_combobox(ui->win, "", 535, 350, 90, 30);
     ui->button->flags |= FAST_REDRAW;
     combobox_add_entry(ui->button,"---");
@@ -496,7 +389,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     ui->keyboard = open_midi_keyboard(ui->win);
     ui->keyboard->flags |= HIDE_ON_DELETE;
     ui->keyboard->func.unmap_notify_callback = keyboard_hidden;
-    ui->keyboard->func.map_notify_callback = dummy;
+    ui->keyboard->func.map_notify_callback = dummy_event;
     ui->keys = (MidiKeyboard*)ui->keyboard->parent_struct;
     ui->keys->mk_send_note = get_note;
     ui->keys->mk_send_pitch = get_pitch;
@@ -651,7 +544,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
             if (ui->midi_gain != value) {
                 if(value>-0.1 && value<1.1) {
-                    check_value_changed(ui->widget->adj, &value);
+                    check_value_changed(ui->gain_slider->adj, &value);
                     // prevent event loop between host and plugin
                     ui->block_event = GAIN;
                     ui->midi_gain = value;
@@ -659,7 +552,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
         break;
         case GAIN:
-            check_value_changed(ui->widget->adj, &value);
+            check_value_changed(ui->gain_slider->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
