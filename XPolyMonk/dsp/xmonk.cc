@@ -322,7 +322,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		fRec11[0] = panic_gate ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec11[2] - (fConst7 - (fCheckbox2*fConst7)))));
 		fRec12[0] = (gatetmp>0.0001) ? std::min<double>(1.0,(fRec12[2] + (velocity*fConst6*(1.0-attack)))) : 0.0;
 		fRec13[0] = (fRec12[0]<0.99 ) ? 1.0 : std::max<double>(sustain, (fRec13[2] - (fConst6 - (decay*fConst9))));
-		fRec14[0] = hold_gate>0.0001 ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec14[2] - (fConst7 - (fConst8*release)))));
+		fRec14[0] = (hold_gate>0.0001 && release>0.001) ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec14[2] - (fConst7 - (fConst8*release)))));
 		fRec1[0] = (fConst1 + (fRec1[1] - std::floor((fConst1 + fRec1[1]))));
 		double fTemp0 = (fSlow0 * ((0.013000000000000001 * ftbl0mydspSIG0[int((65536.0 * fRec1[0]))]) + 1.0));
 		double fTemp1 = ((0.003666666666666667 * (400.0 - fTemp0)) + 3.0);
