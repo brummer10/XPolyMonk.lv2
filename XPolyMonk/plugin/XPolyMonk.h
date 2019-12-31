@@ -71,10 +71,6 @@ namespace stereoverb {
 class Dsp;
 } // end namespace stereoverb
 
-namespace stereodelay {
-class Dsp;
-} // end namespace stereodelay
-
 ///////////////////////// DENORMAL PROTECTION WITH SSE /////////////////
 
 #ifdef NOSSE
@@ -233,7 +229,6 @@ private:
   PolyVoice* p;
   compressor::Dsp*      compress;
   stereoverb::Dsp*      reverb;
-  stereodelay::Dsp*      delay;
 
   // private functions
   inline void run_dsp_(uint32_t n_samples);
