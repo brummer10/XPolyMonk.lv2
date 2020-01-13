@@ -122,12 +122,17 @@ private:
 	double fRec12[3];
 	double fRec13[3];
 	double fRec14[3];
+	double fRec15[3];
 	double TET;
 	double ref_freq;
 	double ref_note;
 	double max_note;
 	FAUSTFLOAT fHslider3;
 	FAUSTFLOAT	*fHslider3_;
+	FAUSTFLOAT fHslider4;
+	FAUSTFLOAT	*fHslider4_;
+	FAUSTFLOAT fHslider5;
+	FAUSTFLOAT	*fHslider5_;
 	int check_gate;
 	mydspSIG0* sig0;
 	double ftbl0mydspSIG0[65536];
@@ -185,6 +190,7 @@ inline void Dsp::clear_state_f()
 	for (int l11 = 0; (l11 < 3); l11 = (l11 + 1)) fRec12[l11] = 0.0;
 	for (int l12 = 0; (l12 < 3); l12 = (l12 + 1)) fRec13[l12] = 0.0;
 	for (int l13 = 0; (l13 < 3); l13 = (l13 + 1)) fRec14[l13] = 0.0;
+	for (int l14 = 0; (l14 < 3); l14 = (l14 + 1)) fRec15[l14] = 0.0;
 }
 
 void Dsp::clear_state_f_static(Dsp *p)
@@ -213,6 +219,8 @@ inline void Dsp::init(uint32_t samplingFreq)
 	fCheckbox0 = FAUSTFLOAT(0.0);
 	fHslider2 = FAUSTFLOAT(0.0);
 	fHslider3 = FAUSTFLOAT(6.0);
+	fHslider4 = FAUSTFLOAT(0.0);
+	fHslider5 = FAUSTFLOAT(0.0);
 	TET = 12.0;
 	ref_freq = 440.0;
 	ref_note = 69.0;
@@ -243,6 +251,8 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 {
 #define fCheckbox1 (*fCheckbox1_)
 #define fHslider3 (*fHslider3_)
+#define fHslider4 (*fHslider4_)
+#define fHslider5 (*fHslider5_)
 
 	fHslider0 = note;
 	fHslider1 = gain;
@@ -314,15 +324,22 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		if(panic_gate ) for (int l11 = 0; (l11 < 3); l11 = (l11 + 1)) fRec12[l11] = 0.0;
 	}
     //fprintf(stderr, "attack %f decay %f sustain %f hold %f release %f\n", fRec12[0], fRec13[0], sustain, fRec11[0],fRec14[0]);
+	double break_point = double(fHslider4);
+	double slope = double(fHslider5);
+	double slope_in = sustain - break_point;
 	double hold_gate = fRec11[0]>0.0001 ? 1.0 : 0.0;
-	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+hold_gate+fRec14[2]))* fCheckbox3;
-	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fRec12[0] *gatetmp * fRec13[0]) * env_amp);
+	double fattack = attack<0.001 ? 1.0 : fRec12[0];
+	double fdecay = decay<0.001 ? break_point : fRec13[0];
+	double frelease = release>0.001 ? fRec14[0] : 0.0;
+	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+hold_gate+frelease))* fCheckbox3;
+	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fattack *gatetmp * (fdecay+fRec15[0])) * env_amp);
 	double fSlow2 = (0.0010000000000000009 * double(fHslider2));
 	for (int i = 0; (i < count); i = (i + 1)) {
 		fRec11[0] = panic_gate ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec11[2] - (fConst7 - (fCheckbox2*fConst7)))));
-		fRec12[0] = (gatetmp>0.0001) ? std::min<double>(1.0,(fRec12[2] + (velocity*fConst6*(1.0-attack)))) : 0.0;
-		fRec13[0] = (fRec12[0]<0.99 ) ? 1.0 : std::max<double>(sustain, (fRec13[2] - (fConst6 - (decay*fConst9))));
-		fRec14[0] = (hold_gate>0.0001 && release>0.001) ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec14[2] - (fConst7 - (fConst8*release)))));
+		fRec12[0] = (gatetmp>0.0001 ) ? std::min<double>(1.0,(fRec12[2] + (velocity*fConst6*(1.0-attack)))) : 0.0;
+		fRec13[0] = (fRec12[0]<0.99 ) ? 1.0 : std::max<double>(break_point, (fRec13[2] - (fConst6 - (decay*fConst9))));
+		fRec14[0] = (hold_gate>0.0001 ) ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec14[2] - (fConst7 - (fConst8*release)))));
+		fRec15[0] = ((std::fabs(fdecay-break_point)>0.001) ? 0.0 : (slope_in > 0.0 ? std::min<double>(slope_in,(fRec15[2] + (fConst6*(1.0-slope)))) :  std::max<double>(slope_in, (fRec15[2] - (fConst6 - (slope*fConst9))))));
 		fRec1[0] = (fConst1 + (fRec1[1] - std::floor((fConst1 + fRec1[1]))));
 		double fTemp0 = (fSlow0 * ((0.013000000000000001 * ftbl0mydspSIG0[int((65536.0 * fRec1[0]))]) + 1.0));
 		double fTemp1 = ((0.003666666666666667 * (400.0 - fTemp0)) + 3.0);
@@ -471,9 +488,13 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		fRec13[1] = fRec13[0];
 		fRec14[2] = fRec14[1];
 		fRec14[1] = fRec14[0];
+		fRec15[2] = fRec15[1];
+		fRec15[1] = fRec15[0];
 	}
 #undef fCheckbox1
 #undef fHslider3
+#undef fHslider4
+#undef fHslider5
 }
 
 void __rt_func Dsp::compute_static(int count, FAUSTFLOAT *output0, FAUSTFLOAT *output1, Dsp *p)
@@ -491,6 +512,12 @@ void Dsp::connect(uint32_t port,void* data)
 		break;
 	case VIBRATO: 
 		fHslider3_ = (float*)data; // , 0.0, 0.0, 6.0, 1.0 
+		break;
+	case BREAK_POINT: 
+		fHslider4_ = (float*)data; // , 0.0, 0.0, 6.0, 1.0 
+		break;
+	case SLOPE: 
+		fHslider5_ = (float*)data; // , 0.0, 0.0, 6.0, 1.0 
 		break;
 	default:
 		break;

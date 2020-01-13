@@ -32,18 +32,21 @@ typedef struct {
     void *parentXwindow;
     Xputty main;
     Widget_t *win;
-    Widget_t *gain_slider;
-    Widget_t *vibrato_slider;
-    Widget_t *button;
+    Widget_t *gain_knob;
+    Widget_t *vibrato_knob;
+    Widget_t *vowel_knob;
+    Widget_t *combobox;
     Widget_t *key_button;
     Widget_t *keyboard;
-    Widget_t *detune_slider;
-    Widget_t *attack_slider;
-    Widget_t *decay_slider;
-    Widget_t *sustain_slider;
-    Widget_t *hold_slider;
-    Widget_t *release_slider;
-    Widget_t *env_amp_slider;
+    Widget_t *detune_knob;
+    Widget_t *attack_knob;
+    Widget_t *decay_knob;
+    Widget_t *break_point_knob;
+    Widget_t *slope_knob;
+    Widget_t *sustain_knob;
+    Widget_t *hold_knob;
+    Widget_t *release_knob;
+    Widget_t *env_amp_knob;
     MidiKeyboard *keys;
     int block_event;
     float panic;
@@ -90,37 +93,128 @@ static void adj_changed(Widget_t *w, PortIndex index, float value) {
     ui->block_event = -1;
 }
 
+static void pm_draw_knob(void *w_, void* user_data) {
+    Widget_t *w = (Widget_t*)w_;
+    XWindowAttributes attrs;
+    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
+    int width = attrs.width-2;
+    int height = attrs.height-2;
+
+    const double scale_zero = 20 * (M_PI/180); // defines "dead zone" for knobs
+    int arc_offset = 2;
+    int knob_x = 0;
+    int knob_y = 0;
+
+    int grow = (width > height) ? height:width;
+    knob_x = grow-1;
+    knob_y = grow-1;
+    /** get values for the knob **/
+
+    int knobx = (width - knob_x) * 0.5;
+    int knobx1 = width* 0.5;
+
+    int knoby = (height - knob_y) * 0.5;
+    int knoby1 = height * 0.5;
+
+    double knobstate = adj_get_state(w->adj_y);
+    double angle = scale_zero + knobstate * 2 * (M_PI - scale_zero);
+
+    double pointer_off =knob_x/3.5;
+    double radius = min(knob_x-pointer_off, knob_y-pointer_off) / 2;
+    double lengh_x = (knobx+radius+pointer_off/2) - radius * sin(angle);
+    double lengh_y = (knoby+radius+pointer_off/2) + radius * cos(angle);
+    double radius_x = (knobx+radius+pointer_off/2) - radius/ 1.18 * sin(angle);
+    double radius_y = (knoby+radius+pointer_off/2) + radius/ 1.18 * cos(angle);
+    cairo_pattern_t* pat;
+    cairo_new_path (w->crb);
+
+    pat = cairo_pattern_create_linear (0, 0, 0, knob_y);
+    cairo_pattern_add_color_stop_rgba (pat, 1,  0.3, 0.3, 0.3, 1.0);
+    cairo_pattern_add_color_stop_rgba (pat, 0.75,  0.2, 0.2, 0.2, 1.0);
+    cairo_pattern_add_color_stop_rgba (pat, 0.5,  0.15, 0.15, 0.15, 1.0);
+    cairo_pattern_add_color_stop_rgba (pat, 0.25,  0.1, 0.1, 0.1, 1.0);
+    cairo_pattern_add_color_stop_rgba (pat, 0,  0.05, 0.05, 0.05, 1.0);
+
+    cairo_scale (w->crb, 0.95, 1.05);
+    cairo_arc(w->crb,knobx1+arc_offset/2, knoby1-arc_offset, knob_x/2.2, 0, 2 * M_PI );
+    cairo_set_source (w->crb, pat);
+    cairo_fill_preserve (w->crb);
+     cairo_set_source_rgb (w->crb, 0.1, 0.1, 0.1); 
+    cairo_set_line_width(w->crb,1);
+    cairo_stroke(w->crb);
+    cairo_scale (w->crb, 1.05, 0.95);
+    cairo_new_path (w->crb);
+    cairo_pattern_destroy (pat);
+    pat = NULL;
+
+    pat = cairo_pattern_create_linear (0, 0, 0, knob_y);
+    cairo_pattern_add_color_stop_rgba (pat, 0,  0.3, 0.3, 0.3, 1.0);
+    cairo_pattern_add_color_stop_rgba (pat, 0.25,  0.2, 0.2, 0.2, 1.0);
+    cairo_pattern_add_color_stop_rgba (pat, 0.5,  0.15, 0.15, 0.15, 1.0);
+    cairo_pattern_add_color_stop_rgba (pat, 0.75,  0.1, 0.1, 0.1, 1.0);
+    cairo_pattern_add_color_stop_rgba (pat, 1,  0.05, 0.05, 0.05, 1.0);
+
+    cairo_arc(w->crb,knobx1, knoby1, knob_x/2.6, 0, 2 * M_PI );
+    cairo_set_source (w->crb, pat);
+    cairo_fill_preserve (w->crb);
+     cairo_set_source_rgb (w->crb, 0.1, 0.1, 0.1); 
+    cairo_set_line_width(w->crb,1);
+    cairo_stroke(w->crb);
+    cairo_new_path (w->crb);
+    cairo_pattern_destroy (pat);
+
+    /** create a rotating pointer on the kob**/
+    cairo_set_line_cap(w->crb, CAIRO_LINE_CAP_ROUND); 
+    cairo_set_line_join(w->crb, CAIRO_LINE_JOIN_BEVEL);
+    cairo_move_to(w->crb, radius_x, radius_y);
+    cairo_line_to(w->crb,lengh_x,lengh_y);
+    cairo_set_line_width(w->crb,3);
+    cairo_set_source_rgb (w->crb,0.63,0.63,0.63);
+    cairo_stroke(w->crb);
+    cairo_new_path (w->crb);
+
+    cairo_text_extents_t extents;
+    /** show value on the kob**/
+    if (w->state) {
+        char s[64];
+        const char* format[] = {"%.1f", "%.2f", "%.3f"};
+        snprintf(s, 63, format[2-1], w->adj_y->value);
+        cairo_set_source_rgb (w->crb, 0.6, 0.6, 0.6);
+        cairo_set_font_size (w->crb, knobx1/3);
+        cairo_select_font_face (w->crb, "Sans", CAIRO_FONT_SLANT_NORMAL,
+                                   CAIRO_FONT_WEIGHT_BOLD);
+        cairo_text_extents(w->crb, s, &extents);
+        cairo_move_to (w->crb, knobx1-extents.width/2, knoby1+extents.height/2);
+        cairo_show_text(w->crb, s);
+        cairo_new_path (w->crb);
+    }
+
+    /** show label below the knob**/
+    use_text_color_scheme(w, get_color_state(w));
+    float font_size = ((height/2.2 < (width*0.5)/3) ? height/2.2 : (width*0.5)/3);
+    cairo_set_font_size (w->crb, font_size);
+    cairo_select_font_face (w->crb, "Sans", CAIRO_FONT_SLANT_NORMAL,
+                               CAIRO_FONT_WEIGHT_BOLD);
+    cairo_text_extents(w->crb,w->label , &extents);
+
+    cairo_move_to (w->crb, knobx1-extents.width/2, height );
+    cairo_show_text(w->crb, w->label);
+    cairo_new_path (w->crb);
+}
+
 // draw the window
 static void draw_window(void *w_, void* user_data) {
     Widget_t *w = (Widget_t*)w_;
-    if (!w) return;
-    XWindowAttributes attrs;
-    XGetWindowAttributes(w->app->dpy, (Window)w->widget, &attrs);
-    int width = attrs.width;
-    int height = attrs.height;
-    double state_x = adj_get_state(w->adj_x);
-    double state_y = adj_get_state(w->adj_y);
-    
-    double pos_x1 = 4.0 + (double)((width-8) * state_x);
-    double pos_y1 = height-( 4.0 + (double)((height-8) * state_y));
-
-    cairo_pattern_t *pat;
-
-    pat = cairo_pattern_create_linear (0.0, 0.0,  0.0+pos_y1, width+pos_x1);
-    cairo_pattern_add_color_stop_rgba (pat, 1, 0, 0, 0, 1);
-    cairo_pattern_add_color_stop_rgba (pat, 0, 1, 1, 1, 1);
-    cairo_rectangle(w->crb,0,0,width,height);
-    cairo_set_source (w->crb, pat);
-    cairo_fill (w->crb);
-    cairo_pattern_destroy (pat);
-
+    set_pattern(w,&w->app->color_scheme->selected,&w->app->color_scheme->normal,BACKGROUND_);
+    cairo_paint (w->crb);
     widget_set_scale(w);
-    //cairo_scale(w->crb, w->scale.rcscale_x*0.8,w->scale.rcscale_y);
-    cairo_set_source_surface (w->crb, w->image, 0, 0);
-    cairo_paint(w->crb);
-    //cairo_scale(w->crb, w->scale.cscale_x*0.8,w->scale.cscale_y);
+    use_text_color_scheme(w, get_color_state(w));
+    cairo_set_font_size (w->crb, 25);
+    cairo_select_font_face (w->crb, "Sans", CAIRO_FONT_SLANT_NORMAL,
+                               CAIRO_FONT_WEIGHT_BOLD);
+    cairo_move_to (w->crb, 75, 35);
+    cairo_show_text(w->crb, w->label);
     widget_reset_scale(w);
-
 }
 
 static void reset_panic(X11_UI* ui) {
@@ -128,12 +222,6 @@ static void reset_panic(X11_UI* ui) {
         ui->panic = 1.0;
         ui->write_function(ui->controller,PANIC,sizeof(float),0,&ui->panic);
     }
-}
-
-static void _motion(void *w_, void* user_data) {
-    Widget_t *w = (Widget_t*)w_;
-    if (!w) return;
-    adj_changed(w,VOWEL,adj_get_value(w->adj_x));
 }
 
 static void get_note(Widget_t *w, int *key, bool on_off) {
@@ -161,20 +249,20 @@ static void get_sensity(Widget_t *w,int *value) {
 static void get_mod(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     float v = (float)(*value)/32.0;
-    check_value_changed(ui->win->adj_x, &v);
+    check_value_changed(ui->vowel_knob->adj, &v);
 }
 
 static void get_detune(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     if((*value)>64) (*value) *=1.01;
     float v = (float)(*value)/64.0 - 1.0;
-    check_value_changed(ui->detune_slider->adj, &v);
+    check_value_changed(ui->detune_knob->adj, &v);
 }
 
 static void get_volume(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     float v = (float)(*value)/127.0;
-    check_value_changed(ui->gain_slider->adj, &v);
+    check_value_changed(ui->gain_knob->adj, &v);
 }
 
 static void get_velocity(Widget_t *w,int *value) {
@@ -185,19 +273,19 @@ static void get_velocity(Widget_t *w,int *value) {
 static void get_attack(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     float v = (float)(*value)/127.0;
-    check_value_changed(ui->attack_slider->adj, &v);
+    check_value_changed(ui->attack_knob->adj, &v);
 }
 
 static void get_sustain(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     float v = (float)(*value)/127.0;
-    check_value_changed(ui->sustain_slider->adj, &v);
+    check_value_changed(ui->sustain_knob->adj, &v);
 }
 
 static void get_release(Widget_t *w,int *value) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     float v = (float)(*value)/127.0;
-    check_value_changed(ui->release_slider->adj, &v);
+    check_value_changed(ui->release_knob->adj, &v);
 }
 
 static void get_all_sound_off(Widget_t *w,int *value) {
@@ -224,9 +312,11 @@ static void key_button_callback(void *w_, void* user_data) {
     
     if (w->flags & HAS_POINTER && adj_get_value(w->adj)){
         widget_show_all(ui->keyboard);
+        tooltip_set_text(w, "Hide Virtual Keyboard");
     }
     if (w->flags & HAS_POINTER && !adj_get_value(w->adj)){
         widget_hide(ui->keyboard);
+        tooltip_set_text(w, "Show Virtual Keyboard");
     }
 }
 
@@ -241,23 +331,12 @@ static void dummy_event(void *w_, void* user_data) {
     // just overwite event with nothing
 }
 
-Widget_t* add_polymonk_vslider(Widget_t *w, PortIndex index, const char * label,
+Widget_t* add_polymonk_knob(Widget_t *w, PortIndex index, const char * label,
                                 X11_UI* ui, int x, int y, int width, int height) {
-    w = add_vslider(ui->win, label, x, y, width, height);
-    w->flags |= FAST_REDRAW;
-    w->scale.gravity = CENTER;
-    set_adjustment(w->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
-    w->parent_struct = ui;
-    w->data = index;
-    w->func.value_changed_callback = value_changed;
-    return w;
-}
-
-Widget_t* add_polymonk_hslider(Widget_t *w, PortIndex index, const char * label,
-                                X11_UI* ui, int x, int y, int width, int height) {
-    w = add_hslider(ui->win, label, x, y, width, height);
-    w->flags |= FAST_REDRAW;
-    w->scale.gravity = CENTER;
+    w = add_knob(ui->win, label, x, y, width, height);
+    w->func.expose_callback = pm_draw_knob;    
+    //w->flags |= FAST_REDRAW;
+    //w->scale.gravity = CENTER;
     set_adjustment(w->adj,0.0, 0.0, 0.0, 1.0, 0.005, CL_CONTINUOS);
     w->parent_struct = ui;
     w->data = index;
@@ -331,60 +410,65 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     // init Xputty
     main_init(&ui->main);
     // create the toplevel Window on the parentXwindow provided by the host
-    ui->win = create_window(&ui->main, (Window)ui->parentXwindow, 0, 0, 640, 395);
+    ui->win = create_window(&ui->main, (Window)ui->parentXwindow, 0, 0, 800, 140);
      // store a pointer to the X11_UI struct in the parent_struct Widget_t field
     ui->win->parent_struct = ui;
-    widget_get_png(ui->win, LDVAR(mandala_png));
-    // vowel
-    ui->win->adj_x = add_adjustment(ui->win,2.0, 2.0, 0.0, 4.0, 0.02, CL_CONTINUOS);
+    ui->win->label = "XPolyMonk";
     // note
     ui->win->adj_y = add_adjustment(ui->win,40.0, 40.0, 28.0, 52.0, 0.1, CL_NONE);
-    ui->win->func.value_changed_callback = _motion;
     ui->win->func.key_release_callback = win_key_release;
     // connect the expose func
     ui->win->func.expose_callback = draw_window;
 
     // create slider widgets
-    ui->gain_slider = add_polymonk_vslider(ui->gain_slider, GAIN, "Gain", ui, 5, 10, 44, 240);
-    ui->vibrato_slider = add_polymonk_vslider(ui->vibrato_slider, VIBRATO,"Vibrato", ui, 50, 10, 44, 240);
-    set_adjustment(ui->vibrato_slider->adj,6.0, 6.0, 0.0, 12.0, 0.1, CL_CONTINUOS);
+    ui->gain_knob = add_polymonk_knob(ui->gain_knob, GAIN, "Gain", ui, 5, 50, 70, 85);
+    ui->vibrato_knob = add_polymonk_knob(ui->vibrato_knob, VIBRATO,"Vibrato", ui, 75, 50, 70, 85);
+    set_adjustment(ui->vibrato_knob->adj,6.0, 6.0, 0.0, 12.0, 0.1, CL_CONTINUOS);
 
-    ui->attack_slider = add_polymonk_vslider(ui->attack_slider, ATTACK, "Attack", ui, 414, 10, 44, 240);
-    ui->decay_slider = add_polymonk_vslider(ui->decay_slider, DECAY, "Decay", ui, 458, 10, 44, 240);
-    ui->sustain_slider = add_polymonk_vslider(ui->sustain_slider, SUSTAIN, "Sustain", ui, 502, 10, 44, 240);
-    ui->hold_slider = add_polymonk_vslider(ui->hold_slider, HOLD, "Hold", ui, 546, 10, 44, 240);
-    ui->release_slider = add_polymonk_vslider(ui->release_slider, RELEASE, "Release", ui, 590, 10, 44, 240);
+    ui->vowel_knob = add_polymonk_knob(ui->vowel_knob, VOWEL,"Vowel", ui, 145, 50, 70, 85);
+    set_adjustment(ui->vowel_knob->adj,2.0, 2.0, 0.0, 4.0, 0.02, CL_CONTINUOS);
 
-    ui->env_amp_slider = add_polymonk_hslider(ui->win, ENV_AMP, "Env Amp", ui, 410, 250, 240, 44);
-    set_adjustment(ui->env_amp_slider->adj,1.0, 1.0, 0.5, 2.0, 0.01, CL_CONTINUOS);
+    ui->detune_knob = add_polymonk_knob(ui->win, DETUNE, "Detune", ui, 215, 50, 70, 85);
+    set_adjustment(ui->detune_knob->adj,0.0, 0.0, -1.0, 1.0, 0.01, CL_CONTINUOS);
 
-    ui->detune_slider = add_polymonk_hslider(ui->win, DETUNE, "Detune", ui, 200, 340, 240, 44);
-    set_adjustment(ui->detune_slider->adj,0.0, 0.0, -1.0, 1.0, 0.01, CL_CONTINUOS);
+    ui->attack_knob = add_polymonk_knob(ui->attack_knob, ATTACK, "Attack", ui, 310, 55, 60, 75);
+    ui->decay_knob = add_polymonk_knob(ui->decay_knob, DECAY, "Decay", ui, 370, 55, 60, 75);
+    ui->break_point_knob = add_polymonk_knob(ui->break_point_knob, BREAK_POINT, "Break", ui, 430, 55, 60, 75);
+    ui->slope_knob = add_polymonk_knob(ui->slope_knob, SLOPE, "Slope", ui, 490, 55, 60, 75);
+    ui->sustain_knob = add_polymonk_knob(ui->sustain_knob, SUSTAIN, "Sustain", ui, 550, 55, 60, 75);
+    ui->hold_knob = add_polymonk_knob(ui->hold_knob, HOLD, "Hold", ui, 610, 55, 60, 75);
+    ui->release_knob = add_polymonk_knob(ui->release_knob, RELEASE, "Release", ui, 670, 55, 60, 75);
+
+    ui->env_amp_knob = add_polymonk_knob(ui->win, ENV_AMP, "Env Amp", ui, 730, 55, 60, 75);
+    set_adjustment(ui->env_amp_knob->adj,1.0, 1.0, 0.5, 2.0, 0.01, CL_CONTINUOS);
+
 
     // only enable internal keyboard when we've instance access
     if (instance_access) {
-        ui->key_button = add_image_toggle_button(ui->win, "Keyboard", 15, 350, 30, 30);
+        ui->key_button = add_image_toggle_button(ui->win, "Keyboard", 15, 10, 30, 30);
+        add_tooltip(ui->key_button, "Show Virtual Keyboard");
+        ui->key_button->scale.gravity = ASPECT;
         widget_get_png(ui->key_button, LDVAR(midikeyboard_png));
         ui->key_button->func.value_changed_callback = key_button_callback;
     }
 
     // create combobox widget
-    ui->button = add_combobox(ui->win, "", 535, 350, 90, 30);
-    ui->button->flags |= FAST_REDRAW;
-    combobox_add_entry(ui->button,"---");
-    combobox_add_entry(ui->button,"12-ET");
-    combobox_add_entry(ui->button,"19-ET");
-    combobox_add_entry(ui->button,"24-ET");
-    combobox_add_entry(ui->button,"31-ET");
-    combobox_add_entry(ui->button,"41-ET");
-    combobox_add_entry(ui->button,"53-ET");
-    combobox_set_active_entry(ui->button, 0);
+    ui->combobox = add_combobox(ui->win, "", 700, 10, 90, 30);
+    ui->combobox->scale.gravity = ASPECT;
+    combobox_add_entry(ui->combobox,"---");
+    combobox_add_entry(ui->combobox,"12-ET");
+    combobox_add_entry(ui->combobox,"19-ET");
+    combobox_add_entry(ui->combobox,"24-ET");
+    combobox_add_entry(ui->combobox,"31-ET");
+    combobox_add_entry(ui->combobox,"41-ET");
+    combobox_add_entry(ui->combobox,"53-ET");
+    combobox_set_active_entry(ui->combobox, 0);
     // store the port index in the Widget_t data field
-    ui->button->data = SCALE;
+    ui->combobox->data = SCALE;
     // store a pointer to the X11_UI struct in the parent_struct Widget_t field
-    ui->button->parent_struct = ui;
+    ui->combobox->parent_struct = ui;
     // connect the value changed callback with the write_function
-    ui->button->func.value_changed_callback = value_changed;
+    ui->combobox->func.value_changed_callback = value_changed;
 
     ui->keyboard = open_midi_keyboard(ui->win);
     ui->keyboard->flags |= HIDE_ON_DELETE;
@@ -410,7 +494,7 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
     // request to resize the parentXwindow to the size of the toplevel Widget_t
     if (resize){
         ui->resize = resize;
-        resize->ui_resize(resize->handle, 640, 395);
+        resize->ui_resize(resize->handle, 800, 140);
     }
     // store pointer to the host controller
     ui->controller = controller;
@@ -448,7 +532,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
             if (ui->midi_vowel != value) {
                 if(value>-0.1 && value<4.1) {
-                    check_value_changed(ui->win->adj_x, &value);
+                    check_value_changed(ui->vowel_knob->adj, &value);
                     // prevent event loop between host and plugin
                     ui->block_event = VOWEL;
                     ui->midi_vowel = value;
@@ -462,7 +546,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
             if (ui->midi_detune != value) {
                 if(value>-1.1 && value<1.1) {
-                    check_value_changed(ui->detune_slider->adj, &value);
+                    check_value_changed(ui->detune_knob->adj, &value);
                     // prevent event loop between host and plugin
                     ui->block_event = DETUNE;
                     ui->midi_detune = value;
@@ -502,7 +586,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
             if (ui->midi_attack != value) {
                 if(value>-0.1 && value<1.1) {
-                    check_value_changed(ui->attack_slider->adj, &value);
+                    check_value_changed(ui->attack_knob->adj, &value);
                     // prevent event loop between host and plugin
                     ui->block_event = ATTACK;
                     ui->midi_attack = value;
@@ -516,7 +600,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
             if (ui->midi_sustain != value) {
                 if(value>-0.1 && value<1.1) {
-                    check_value_changed(ui->sustain_slider->adj, &value);
+                    check_value_changed(ui->sustain_knob->adj, &value);
                     // prevent event loop between host and plugin
                     ui->block_event = SUSTAIN;
                     ui->midi_sustain = value;
@@ -530,7 +614,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
             if (ui->midi_release != value) {
                 if(value>-0.1 && value<1.1) {
-                    check_value_changed(ui->release_slider->adj, &value);
+                    check_value_changed(ui->release_knob->adj, &value);
                     // prevent event loop between host and plugin
                     ui->block_event = RELEASE;
                     ui->midi_release = value;
@@ -544,7 +628,7 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
             if (ui->midi_gain != value) {
                 if(value>-0.1 && value<1.1) {
-                    check_value_changed(ui->gain_slider->adj, &value);
+                    check_value_changed(ui->gain_knob->adj, &value);
                     // prevent event loop between host and plugin
                     ui->block_event = GAIN;
                     ui->midi_gain = value;
@@ -552,17 +636,17 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             }
         break;
         case GAIN:
-            check_value_changed(ui->gain_slider->adj, &value);
+            check_value_changed(ui->gain_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case VIBRATO:
-            check_value_changed(ui->vibrato_slider->adj, &value);
+            check_value_changed(ui->vibrato_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case VOWEL:
-            check_value_changed(ui->win->adj_x, &value);
+            check_value_changed(ui->vowel_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
@@ -575,42 +659,52 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
             adj_changed(ui->win, GATE, value);
         break;
         case SCALE:
-            check_value_changed(ui->button->adj, &value);
+            check_value_changed(ui->combobox->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case ATTACK:
-            check_value_changed(ui->attack_slider->adj, &value);
+            check_value_changed(ui->attack_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case DECAY:
-            check_value_changed(ui->decay_slider->adj, &value);
+            check_value_changed(ui->decay_knob->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case BREAK_POINT:
+            check_value_changed(ui->break_point_knob->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case SLOPE:
+            check_value_changed(ui->slope_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case SUSTAIN:
-            check_value_changed(ui->sustain_slider->adj, &value);
+            check_value_changed(ui->sustain_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case HOLD:
-            check_value_changed(ui->hold_slider->adj, &value);
+            check_value_changed(ui->hold_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case RELEASE:
-            check_value_changed(ui->release_slider->adj, &value);
+            check_value_changed(ui->release_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case ENV_AMP:
-            check_value_changed(ui->env_amp_slider->adj, &value);
+            check_value_changed(ui->env_amp_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;
         case DETUNE:
-            check_value_changed(ui->detune_slider->adj, &value);
+            check_value_changed(ui->detune_knob->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;

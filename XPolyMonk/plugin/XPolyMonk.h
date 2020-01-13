@@ -59,6 +59,8 @@ typedef enum
    DECAY,
    SUSTAIN,
    ENV_AMP,
+   BREAK_POINT,
+   SLOPE,
 } PortIndex;
 
 ////////////////////////////// forward declaration ///////////////////////////

@@ -3,8 +3,6 @@
 Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 
 ![xmonk](https://github.com/brummer10/XPolyMonk.lv2/raw/master/xmonk.png)
-![keyboard](https://github.com/brummer10/XPolyMonk.lv2/raw/master/keyboard.png)
-
 
 ## Features
 
