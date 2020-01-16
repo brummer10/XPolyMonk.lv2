@@ -1,4 +1,5 @@
 	
+	UNAME := $(shell uname)
 	STRIP ?= strip
 	# check if user is root
 	user = $(shell whoami)
@@ -9,30 +10,32 @@
 	endif
 
 	# check CPU and supported optimization flags
-	ifneq ($(shell cat /proc/cpuinfo | grep sse3 ) , )
-		SSE_CFLAGS = -msse3 -mfpmath=sse
-	else ifneq ($(shell cat /proc/cpuinfo | grep sse2 ) , )
-		SSE_CFLAGS = -msse2 -mfpmath=sse
-	else ifneq ($(shell cat /proc/cpuinfo | grep sse ) , )
-		SSE_CFLAGS = -msse -mfpmath=sse
-		else ifneq ($(shell cat /proc/cpuinfo | grep ARM ) , )
-		ifneq ($(shell cat /proc/cpuinfo | grep ARMv7 ) , )
-			ifneq ($(shell cat /proc/cpuinfo | grep vfpd32 ) , )
-				SSE_CFLAGS = -march=armv7-a -mfpu=vfpv3 
-			else ifneq ($(shell cat /proc/cpuinfo | grep vfpv3 ) , )
-				SSE_CFLAGS = -march=armv7-a -mfpu=vfpv3
+	ifeq ($(UNAME), Linux)
+		ifneq ($(shell cat /proc/cpuinfo | grep sse3 ) , )
+			SSE_CFLAGS = -msse3 -mfpmath=sse
+		else ifneq ($(shell cat /proc/cpuinfo | grep sse2 ) , )
+			SSE_CFLAGS = -msse2 -mfpmath=sse
+		else ifneq ($(shell cat /proc/cpuinfo | grep sse ) , )
+			SSE_CFLAGS = -msse -mfpmath=sse
+			else ifneq ($(shell cat /proc/cpuinfo | grep ARM ) , )
+			ifneq ($(shell cat /proc/cpuinfo | grep ARMv7 ) , )
+				ifneq ($(shell cat /proc/cpuinfo | grep vfpd32 ) , )
+					SSE_CFLAGS = -march=armv7-a -mfpu=vfpv3 
+				else ifneq ($(shell cat /proc/cpuinfo | grep vfpv3 ) , )
+					SSE_CFLAGS = -march=armv7-a -mfpu=vfpv3
+				endif
+			else
+				ARMCPU = "YES"
 			endif
 		else
-			ARMCPU = "YES"
+			SSE_CFLAGS =
 		endif
-	else
-		SSE_CFLAGS =
 	endif
 
 	# set bundle name
 	NAME = XPolyMonk
 	BUNDLE = $(NAME).lv2
-	VER = 0.5
+	VER = 0.6
 
 	LIB_DIR := ../libxputty/libxputty/
 	HEADER_DIR := $(LIB_DIR)include/

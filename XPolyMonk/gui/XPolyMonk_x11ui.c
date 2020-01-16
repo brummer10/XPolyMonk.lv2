@@ -139,7 +139,7 @@ static void pm_draw_knob(void *w_, void* user_data) {
     cairo_arc(w->crb,knobx1+arc_offset/2, knoby1-arc_offset, knob_x/2.2, 0, 2 * M_PI );
     cairo_set_source (w->crb, pat);
     cairo_fill_preserve (w->crb);
-     cairo_set_source_rgb (w->crb, 0.1, 0.1, 0.1); 
+    cairo_set_source_rgb (w->crb, 0.1, 0.1, 0.1); 
     cairo_set_line_width(w->crb,1);
     cairo_stroke(w->crb);
     cairo_scale (w->crb, 1.05, 0.95);
@@ -157,7 +157,7 @@ static void pm_draw_knob(void *w_, void* user_data) {
     cairo_arc(w->crb,knobx1, knoby1, knob_x/2.6, 0, 2 * M_PI );
     cairo_set_source (w->crb, pat);
     cairo_fill_preserve (w->crb);
-     cairo_set_source_rgb (w->crb, 0.1, 0.1, 0.1); 
+    cairo_set_source_rgb (w->crb, 0.1, 0.1, 0.1); 
     cairo_set_line_width(w->crb,1);
     cairo_stroke(w->crb);
     cairo_new_path (w->crb);
