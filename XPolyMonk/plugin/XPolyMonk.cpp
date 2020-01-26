@@ -64,20 +64,20 @@ namespace xmonk {
 
 PolyVoice::PolyVoice()
 {
-  for(int i = 0; i<VOICES;i++) {
+  for(int i = 0; i<12;i++) {
     xmonk[i] = xmonk::plugin();
   }
 }
 
 PolyVoice::~PolyVoice()
 {
-  for(int i = 0; i<VOICES;i++) {
+  for(int i = 0; i<12;i++) {
     xmonk[i]->del_instance(xmonk[i]);
   }
 }
 
 void PolyVoice::init_poly(PolyVoice *p, uint32_t rate) {
-  for(int i = 0; i<VOICES;i++) {
+  for(int i = 0; i<12;i++) {
     p->xmonk[i]->init_static(rate, p->xmonk[i]);
   }
   last_voice = 0;
@@ -87,7 +87,7 @@ void PolyVoice::init_poly(PolyVoice *p, uint32_t rate) {
 }
 
 void PolyVoice::connect_poly(PolyVoice *p, uint32_t port,void* data) {
-  for(int i = 0; i<VOICES;i++) {
+  for(int i = 0; i<12;i++) {
     p->xmonk[i]->connect_static(port,  data, p->xmonk[i]);
   }
 }
@@ -95,7 +95,7 @@ void PolyVoice::connect_poly(PolyVoice *p, uint32_t port,void* data) {
 void PolyVoice::run_poly(PolyVoice *p, uint32_t n_samples, float* output, float* output1) {
   memset(output,0,n_samples*sizeof(float));
   memset(output1,0,n_samples*sizeof(float));
-  for(int i = 0; i<VOICES;i++) {
+  for(int i = 0; i<play_voices;i++) {
     p->xmonk[i]->note = (int) p->voices[i] ? (double) p->voices[i] + p->pitchbend : p->xmonk[i]->note;
     p->xmonk[i]->gate = (int) p->voices[i] ? 1.0 : 0.0;
     p->xmonk[i]->vowel = (double) p->vowel;
@@ -232,8 +232,12 @@ void XPolyMonk_::connect_(uint32_t port,void* data)
       break;
     case RELEASE: 
       ui_release = (float*)data; 
+      break;
     case ENV_AMP: 
       ui_env_amp = (float*)data; 
+      break;
+    case VOICE: 
+      ui_voices = (float*)data; 
       break;
     default:
       break;
@@ -258,6 +262,12 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
 {
     if(n_samples<1) return;
     MXCSR.set_();
+
+    if((*ui_voices) != (_ui_voices)) {
+        _ui_voices = (*ui_voices);
+        p->play_voices = (int)_ui_voices;
+    }
+
 
     if((*ui_hold) != _ui_hold) {
         if(!(int)floor((*ui_hold)) && (int)floor((_ui_hold)))
@@ -314,7 +324,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                 (*gate) = 1.0;
                 (*ui_gate) = 1.0;
                 (*panic) = 1.0;
-                add_voice(&note_on);
+                add_voice((int)_ui_voices, &note_on);
             break;
             case LV2_MIDI_MSG_NOTE_OFF:
                 note_off = msg[1];
@@ -326,6 +336,7 @@ void XPolyMonk_::run_dsp_(uint32_t n_samples)
                     case LV2_MIDI_CTL_LSB_MODWHEEL:
                         (*vowel) = (float) (msg[2]/31.0);
                         (*ui_vowel) = (*vowel);
+                        fprintf(stderr, "get modwheel %f\n",(float) (msg[2])/31.0);
                     break;
                     case LV2_MIDI_CTL_ALL_SOUNDS_OFF:
                     case LV2_MIDI_CTL_ALL_NOTES_OFF:

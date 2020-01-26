@@ -313,7 +313,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 	}
 
 	fConst1 = (fHslider3 / fConst0); //vibrato
-	double tempnote = std::min<double>(max_note, fHslider0+= detune);
+	double tempnote = std::min<double>(max_note, fHslider0+ detune);
 	double fSlow0 = double(ref_freq * pow(2.0, (tempnote- ref_note)/TET));
 	double notesplit = max_note* 0.714285714;
 	double regain = tempnote>notesplit? std::max<double>(0.2,std::min<double>(1.0, 1.0- ((tempnote-notesplit)*0.02))) : 1.0;
@@ -332,17 +332,18 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 	double fdecay = decay<0.001 ? break_point : fRec13[0];
 	double frelease = release>0.001 ? fRec14[0] : 0.0;
 	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+hold_gate+frelease))* fCheckbox3;
+	if(gatetmp>0.0001) {
 	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fattack *gatetmp * (fdecay+fRec15[0])) * env_amp);
 	double fSlow2 = (0.0010000000000000009 * double(fHslider2));
 	for (int i = 0; (i < count); i = (i + 1)) {
 		fRec11[0] = panic_gate ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec11[2] - (fConst7 - (fCheckbox2*fConst7)))));
-		fRec12[0] = (gatetmp>0.0001 ) ? std::min<double>(1.0,(fRec12[2] + (velocity*fConst6*(1.0-attack)))) : 0.0;
+		fRec12[0] = (gatetmp>0.0001 ) ? std::min<double>(1.0,(fRec12[2] + (fConst6*(1.0-attack)))) : 0.0;
 		fRec13[0] = (fRec12[0]<0.99 ) ? 1.0 : std::max<double>(break_point, (fRec13[2] - (fConst6 - (decay*fConst9))));
 		fRec14[0] = (hold_gate>0.0001 ) ? 1.0 : std::max<double>(0.0,std::min<double>(1.0,(fRec14[2] - (fConst7 - (fConst8*release)))));
 		fRec15[0] = ((std::fabs(fdecay-break_point)>0.001) ? 0.0 : (slope_in > 0.0 ? std::min<double>(slope_in,(fRec15[2] + (fConst6*(1.0-slope)))) :  std::max<double>(slope_in, (fRec15[2] - (fConst6 - (slope*fConst9))))));
 		fRec1[0] = (fConst1 + (fRec1[1] - std::floor((fConst1 + fRec1[1]))));
 		double fTemp0 = (fSlow0 * ((0.013000000000000001 * ftbl0mydspSIG0[int((65536.0 * fRec1[0]))]) + 1.0));
-		double fTemp1 = ((0.003666666666666667 * (400.0 - fTemp0)) + 3.0);
+		double fTemp1 = (velocity*(0.003666666666666667 * (400.0 - fTemp0)) + 3.0);
 		fRec3[0] = (fSlow1 + (fConst2 * fRec3[1]));
 		double fTemp2 = std::max<double>(9.9999999999999995e-08, std::fabs(fTemp0));
 		double fTemp3 = (fRec4[1] + (fConst4 * fTemp2));
@@ -350,7 +351,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		int iTemp5 = (fTemp4 < 0.0);
 		fRec4[0] = (iTemp5?fTemp3:fTemp4);
 		double fRec5 = (iTemp5?fTemp3:(fTemp3 + (fTemp4 * (1.0 - (fConst0 / fTemp2)))));
-		double fTemp6 = (fRec3[0] * ((2.0 * fRec5) + -1.0));
+		double fTemp6 = (fRec3[0] * ((2.0 * fRec5) + -1.0)); // synth out
 		fRec6[0] = (fSlow2 + (0.999 * fRec6[1]));
 		double fTemp7 = (fRec6[0] + 10.0);
 		int iTemp8 = (fTemp7 < 23.0);
@@ -490,6 +491,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 		fRec14[1] = fRec14[0];
 		fRec15[2] = fRec15[1];
 		fRec15[1] = fRec15[0];
+	}
 	}
 #undef fCheckbox1
 #undef fHslider3

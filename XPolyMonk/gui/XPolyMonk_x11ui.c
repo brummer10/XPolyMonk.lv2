@@ -47,6 +47,7 @@ typedef struct {
     Widget_t *hold_knob;
     Widget_t *release_knob;
     Widget_t *env_amp_knob;
+    Widget_t *voices_combobox;
     MidiKeyboard *keys;
     int block_event;
     float panic;
@@ -228,7 +229,8 @@ static void get_note(Widget_t *w, int *key, bool on_off) {
     X11_UI* ui = (X11_UI*)w->parent_struct;
     if (on_off) {
         reset_panic(ui);
-        ui->xpm->add_voice((uint8_t*)key);
+        
+        ui->xpm->add_voice((int)ui->voices_combobox->adj->value,(uint8_t*)key);
           
     } else {
         ui->xpm->remove_voice((uint8_t*)key);
@@ -451,6 +453,17 @@ static LV2UI_Handle instantiate(const struct _LV2UI_Descriptor * descriptor,
         widget_get_png(ui->key_button, LDVAR(midikeyboard_png));
         ui->key_button->func.value_changed_callback = key_button_callback;
     }
+    // create combobox widget
+    ui->voices_combobox = add_hslider(ui->win, "Voices", 500, 10, 200, 40);
+    ui->voices_combobox->scale.gravity = ASPECT;
+    set_adjustment(ui->voices_combobox->adj,1.0, 1.0, 1.0, 12.0, 1.0, CL_CONTINUOS);
+   // combobox_set_active_entry(ui->voices_combobox, 6);
+    // store the port index in the Widget_t data field
+    ui->voices_combobox->data = VOICE;
+    // store a pointer to the X11_UI struct in the parent_struct Widget_t field
+    ui->voices_combobox->parent_struct = ui;
+    // connect the value changed callback with the write_function
+    ui->voices_combobox->func.value_changed_callback = value_changed;
 
     // create combobox widget
     ui->combobox = add_combobox(ui->win, "", 700, 10, 90, 30);
@@ -700,6 +713,11 @@ static void port_event(LV2UI_Handle handle, uint32_t port_index,
         break;
         case ENV_AMP:
             check_value_changed(ui->env_amp_knob->adj, &value);
+            // prevent event loop between host and plugin
+            ui->block_event = (int)port_index;
+        break;
+        case VOICE:
+            check_value_changed(ui->voices_combobox->adj, &value);
             // prevent event loop between host and plugin
             ui->block_event = (int)port_index;
         break;

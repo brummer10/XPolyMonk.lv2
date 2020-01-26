@@ -61,6 +61,7 @@ typedef enum
    ENV_AMP,
    BREAK_POINT,
    SLOPE,
+   VOICE,
 } PortIndex;
 
 ////////////////////////////// forward declaration ///////////////////////////
@@ -150,11 +151,12 @@ class Dsp;
 class PolyVoice
 {
 private:
-  Dsp*      xmonk[VOICES];
+  Dsp*      xmonk[12];
 
 public:
-  uint8_t voices[VOICES];
+  uint8_t voices[12];
   int last_voice;
+  int play_voices;
   float detune;
   float vowel;
   float panic;
@@ -222,6 +224,7 @@ private:
   float* hold;
   float* ui_gain;
   float _ui_gain;
+  float* ui_voices;
 
   DenormalProtection MXCSR;
   // pointer to buffer
@@ -245,10 +248,11 @@ private:
 public:
   void clear_voice_list();
   void remove_first_voice();
-  void add_voice(uint8_t *key);
+  void add_voice(int v, uint8_t *key);
   void remove_voice(uint8_t *key);
   float pitchbend;
   float velocity;
+  float _ui_voices;
 
   // LV2 Descriptor
   static const LV2_Descriptor descriptor;
@@ -267,6 +271,7 @@ public:
 
 ///////////////////////// PUBLIC CLASS FUNCTIONS USED BY UI /////////////////////
 
+
 void XPolyMonk_::clear_voice_list() {
     int i = 0;
     for(;i<VOICES;i++) {
@@ -282,10 +287,10 @@ void XPolyMonk_::remove_first_voice() {
     p->voices[i] = 0;
 }
 
-void XPolyMonk_::add_voice(uint8_t *key) {
+void XPolyMonk_::add_voice(int v, uint8_t *key) {
     int i = p->last_voice;
     bool set_key = false;
-    for(;i<VOICES;i++) {
+    for(;i<v;i++) {
         if(p->voices[i] == 0) {
             p->voices[i] = (*key);
             set_key = true;
@@ -295,7 +300,7 @@ void XPolyMonk_::add_voice(uint8_t *key) {
     }
     if(!set_key) {
         i = 0;
-        for(;i<VOICES;i++) {
+        for(;i<v;i++) {
             if(p->voices[i] == 0) {
                 p->voices[i] = (*key);
                 set_key = true;
@@ -306,7 +311,7 @@ void XPolyMonk_::add_voice(uint8_t *key) {
     }
     if(!set_key) {
         remove_first_voice();
-        add_voice(key);
+        add_voice(v, key);
     }
 }
 
