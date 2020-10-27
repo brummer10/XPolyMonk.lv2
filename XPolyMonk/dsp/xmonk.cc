@@ -330,7 +330,7 @@ void always_inline Dsp::compute(int count, FAUSTFLOAT *output0, FAUSTFLOAT *outp
 	double hold_gate = fRec11[0]>0.0001 ? 1.0 : 0.0;
 	double fattack = attack<0.001 ? 1.0 : fRec12[0];
 	double fdecay = decay<0.001 ? break_point : fRec13[0];
-	double frelease = release>0.001 ? fRec14[0] : 0.0;
+	double frelease = release>0.001 ? fRec14[0] : 0.0010000000000000009;
 	double gatetmp = panic_gate ?  1.0 : std::max<double>(0.0,std::min<double>(1.0, double(fCheckbox0)+hold_gate+frelease))* fCheckbox3;
 	if(gatetmp>0.0001) {
 	double fSlow1 = (fConst3 * (double(fHslider1)*0.03 * regain * fattack *gatetmp * (fdecay+fRec15[0])) * env_amp);
