@@ -27,6 +27,7 @@ Polyphonic version of [Xmonk.lv2](https://github.com/brummer10/Xmonk.lv2)
 
 - libcairo2-dev
 - libx11-dev
+- lv2-dev
 
 
 ## Build
